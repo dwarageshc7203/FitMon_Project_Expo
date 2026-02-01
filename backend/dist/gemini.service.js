@@ -29,8 +29,9 @@ let GeminiService = GeminiService_1 = class GeminiService {
             }
             this.genAI = new generative_ai_1.GoogleGenerativeAI(apiKey);
             this.logger.log('✅ GeminiService initialized with API key');
+            this.logger.log(`   API Key preview: ${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 4)}`);
             this.logger.warn('⚠️  Note: If you get 404 errors, your API key may need model access enabled');
-            this.logger.warn('   Visit: https://makersuite.google.com/app/apikey to regenerate or check permissions');
+            this.logger.warn('   Visit: https://aistudio.google.com/app/apikey to regenerate or check permissions');
         }
     }
     async generateSessionReport(input) {
@@ -40,9 +41,11 @@ let GeminiService = GeminiService_1 = class GeminiService {
         const prompt = this.buildAdvancedPrompt(input);
         try {
             const modelsToTry = [
+                'gemini-2.5-flash',
                 'gemini-2.0-flash-exp',
+                'gemini-1.5-flash',
                 'gemini-1.5-pro',
-                'gemini-1.5-flash'
+                'gemini-pro'
             ];
             let result;
             let lastError = null;
@@ -65,23 +68,38 @@ let GeminiService = GeminiService_1 = class GeminiService {
             }
             if (!result) {
                 const apiKey = process.env.GEMINI_API_KEY;
-                const apiKeyPreview = apiKey ? apiKey.substring(0, 15) + '...' : 'not set';
+                const apiKeyPreview = apiKey ? `${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 4)}` : 'not set';
                 const is404 = lastError?.message?.includes('404') || lastError?.message?.includes('not found');
                 const is403 = lastError?.message?.includes('403') || lastError?.message?.includes('unauthorized');
-                let helpMessage = '\n\n🔧 SOLUTION STEPS:\n\n';
+                const is400 = lastError?.message?.includes('400') || lastError?.message?.includes('invalid');
+                let helpMessage = '\n\n🔧 TROUBLESHOOTING STEPS:\n\n';
                 if (is404) {
                     helpMessage += '   ⚠️  Your API key cannot access any Gemini models (404 errors).\n\n';
-                    helpMessage += '   1. ⭐ REGENERATE YOUR API KEY:\n';
-                    helpMessage += '      → Go to: https://makersuite.google.com/app/apikey\n';
-                    helpMessage += '      → Delete your old key and create a NEW one\n';
-                    helpMessage += '      → Copy the new key to backend/.env as GEMINI_API_KEY\n\n';
+                    helpMessage += '   This is the MOST COMMON issue with new API keys.\n\n';
+                    helpMessage += '   SOLUTION:\n';
+                    helpMessage += '   1. Go to: https://aistudio.google.com/app/apikey\n';
+                    helpMessage += '   2. DELETE your current API key\n';
+                    helpMessage += '   3. Click "Create API key" to generate a NEW one\n';
+                    helpMessage += '   4. Copy the new key to backend/.env as GEMINI_API_KEY=<your_key>\n';
+                    helpMessage += '   5. Make sure there are NO quotes around the key\n';
+                    helpMessage += '   6. Restart your server completely (Ctrl+C then restart)\n\n';
+                    helpMessage += '   Note: Brand new keys from AI Studio get automatic model access.\n';
                 }
                 else if (is403) {
                     helpMessage += '   ⚠️  Authentication failed (403 error).\n\n';
-                    helpMessage += '   1. Check API key is correct\n';
-                    helpMessage += '   2. Regenerate at: https://makersuite.google.com/app/apikey\n';
+                    helpMessage += '   1. Check that your API key is correctly set in .env\n';
+                    helpMessage += '   2. Make sure there are no extra spaces or quotes\n';
+                    helpMessage += '   3. Regenerate at: https://aistudio.google.com/app/apikey\n';
                 }
-                helpMessage += '\n📋 Models tried: ' + triedModels.join(', ') + '\n';
+                else if (is400) {
+                    helpMessage += '   ⚠️  Bad request (400 error).\n\n';
+                    helpMessage += '   This might be a regional restriction or API limitation.\n';
+                    helpMessage += '   1. Check if Gemini API is available in your region\n';
+                    helpMessage += '   2. Try creating a new API key at: https://aistudio.google.com/app/apikey\n';
+                }
+                helpMessage += `\n📋 Models tried: ${triedModels.join(', ')}\n`;
+                helpMessage += `🔑 API Key preview: ${apiKeyPreview}\n`;
+                helpMessage += `\n❌ Last error: ${lastError?.message?.substring(0, 300) || 'Unknown error'}\n`;
                 throw new Error(`❌ All Gemini models failed to generate content.${helpMessage}`);
             }
             const response = result.response;
