@@ -7,6 +7,7 @@ export interface PatientInput {
     goal: string;
     accuracy_rate: number;
     activation_rate: number;
+    pulse_rate: number;
 }
 export interface SessionReport {
     summary: string;

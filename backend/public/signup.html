@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>FitMon – Sign up</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body data-page="signup">
+  <header class="navbar">
+    <div class="navbar-inner">
+      <a href="/index.html" class="brand">
+        <div class="brand-pill"></div>
+        <span>FitMon</span>
+      </a>
+      <nav class="nav-links">
+        <a href="/login.html">Login</a>
+        <a href="/signup.html" class="active">Sign up</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="page-inner">
+      <div class="card form-card">
+        <h1 class="form-title">Create your FitMon account</h1>
+        <p class="form-subtitle">
+          This prototype stores accounts only in your browser (localStorage).
+        </p>
+
+        <form id="signupForm">
+          <div class="form-field">
+            <label for="username">Username</label>
+            <input id="username" name="username" type="text" required placeholder="yourname" />
+          </div>
+
+          <div class="form-field">
+            <label for="role">Role</label>
+            <select id="role" name="role" required>
+              <option value="">Select role</option>
+              <option value="doctor">Doctor</option>
+              <option value="fitness">Fitness enthusiast</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" required placeholder="••••••••" />
+          </div>
+
+          <button class="btn-primary" type="submit">Create account</button>
+        </form>
+
+        <div class="form-footer">
+          Already have an account?
+          <a href="/login.html">Login</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
+

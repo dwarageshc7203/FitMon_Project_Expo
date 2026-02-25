@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>FitMon – Session</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body data-page="session">
+  <header class="navbar">
+    <div class="navbar-inner">
+      <a href="/home.html" class="brand">
+        <div class="brand-pill"></div>
+        <span>FitMon</span>
+      </a>
+      <nav class="nav-links">
+        <a href="/home.html">Home</a>
+        <a href="/profile.html">Profile</a>
+        <a href="/workouts.html">Workout</a>
+        <a href="/session.html" class="active">Session</a>
+        <a href="#" data-logout>Logout</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="page-inner">
+      <h1 class="section-title">Session / Meeting</h1>
+      <p class="section-subtitle">
+        Prototype: a doctor generates a session code, and a fitness enthusiast joins using that code.
+        Once connected, both can open the streaming dashboards.
+      </p>
+
+      <div class="session-layout">
+        <div class="card">
+          <div id="doctorControls">
+            <p class="session-tag">Doctor controls</p>
+            <p class="muted">
+              Generate a temporary session code and share it with your patient.
+            </p>
+            <div style="margin-top: 1rem;">
+              <button class="btn-primary" id="generateCodeBtn" type="button">
+                Generate session code
+              </button>
+            </div>
+            <div style="margin-top: 1rem;">
+              <span class="session-tag">Current code</span><br />
+              <span class="session-code">
+                <span id="sessionCodeDisplay">———</span>
+                <span class="chip">
+                  <span class="status-dot"></span>
+                  prototype only
+                </span>
+              </span>
+            </div>
+            <p class="muted" style="margin-top: 1.2rem;">
+              After code is shared, you can open the existing doctor dashboard
+              once the patient joins.
+            </p>
+          </div>
+
+          <div id="patientControls">
+            <p class="session-tag">Patient controls</p>
+            <p class="muted">
+              Enter the session code provided by your doctor to join the live workout analysis.
+            </p>
+            <div class="form-field" style="margin-top: 1rem;">
+              <label for="joinCodeInput">Session code</label>
+              <input id="joinCodeInput" type="text" placeholder="e.g. 4K92ZT" />
+            </div>
+            <button class="btn-primary" id="joinSessionBtn" type="button">
+              Join session
+            </button>
+            <p class="muted" style="margin-top: 1rem;">
+              In this prototype, a successful join will open the existing patient or doctor
+              dashboards (<code>patient.html</code> / <code>doctor.html</code>).
+            </p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Live dashboard preview</div>
+          <p class="section-subtitle">
+            This panel represents the combined view: the patient streams video with CV analysis,
+            and the doctor sees FsR / pulse sensor feeds plus report generation.
+          </p>
+          <div class="video-placeholder">
+            Existing doctor &amp; patient dashboards will be visually embedded here later.
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
+

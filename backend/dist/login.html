@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>FitMon – Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body data-page="login">
+  <header class="navbar">
+    <div class="navbar-inner">
+      <a href="/index.html" class="brand">
+        <div class="brand-pill"></div>
+        <span>FitMon</span>
+      </a>
+      <nav class="nav-links">
+        <a href="/login.html" class="active">Login</a>
+        <a href="/signup.html">Sign up</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="page-inner">
+      <div class="card form-card">
+        <h1 class="form-title">Welcome back</h1>
+        <p class="form-subtitle">
+          Sign in with your FitMon account.
+        </p>
+
+        <form id="loginForm">
+          <div class="form-field">
+            <label for="username">Username</label>
+            <input id="username" name="username" type="text" required placeholder="yourname" />
+          </div>
+          <div class="form-field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" required placeholder="••••••••" />
+          </div>
+          <button class="btn-primary" type="submit">Login</button>
+        </form>
+
+        <div class="form-footer">
+          New to FitMon?
+          <a href="/signup.html">Create an account</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>FitMon – Workouts</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body data-page="workouts">
+  <header class="navbar">
+    <div class="navbar-inner">
+      <a href="/home.html" class="brand">
+        <div class="brand-pill"></div>
+        <span>FitMon</span>
+      </a>
+      <nav class="nav-links">
+        <a href="/home.html">Home</a>
+        <a href="/profile.html">Profile</a>
+        <a href="/workouts.html" class="active">Workout</a>
+        <a href="/session.html">Session</a>
+        <a href="#" data-logout>Logout</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="page-inner">
+      <h1 class="section-title">Workout feed</h1>
+      <p class="section-subtitle">
+        Recommended sessions based on your recent progress and profile.
+      </p>
+
+      <div class="section-grid" id="workoutGrid">
+        <!-- Static fallback content in case API is empty or fails -->
+        <div class="card" data-fallback="true">
+          <div class="section-title">Dynamic warm-up</div>
+          <p class="muted">5–10 minutes | Full body</p>
+          <iframe width="100%" height="200"
+                  src="https://www.youtube.com/embed/dj2NvQya_QA"
+                  title="Dynamic warm-up"
+                  allowfullscreen></iframe>
+        </div>
+        <div class="card" data-fallback="true">
+          <div class="section-title">Upper body strength</div>
+          <p class="muted">Biceps, shoulders, back</p>
+          <iframe width="100%" height="200"
+                  src="https://www.youtube.com/embed/ykJmrZ5v0Oo"
+                  title="Upper body workout"
+                  allowfullscreen></iframe>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/app.js"></script>
+  <script>
+    // Fetch personalized workouts from backend using current user id.
+    document.addEventListener('DOMContentLoaded', function () {
+      var grid = document.getElementById('workoutGrid');
+      if (!grid) return;
+
+      var rawUser = null;
+      try {
+        rawUser = localStorage.getItem('fitmonCurrentUser');
+      } catch (e) {
+        // ignore
+      }
+      if (!rawUser) return;
+
+      var user = null;
+      try {
+        user = JSON.parse(rawUser);
+      } catch (e) {
+        return;
+      }
+      if (!user || !user.id) return;
+
+      fetch('/workouts?userId=' + encodeURIComponent(user.id))
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (!data || !Array.isArray(data.workouts) || data.workouts.length === 0) {
+            return;
+          }
+
+          grid.innerHTML = '';
+          data.workouts.forEach(function (w) {
+            var card = document.createElement('div');
+            card.className = 'card';
+
+            var titleDiv = document.createElement('div');
+            titleDiv.className = 'section-title';
+            titleDiv.textContent = w.title || 'Workout';
+            card.appendChild(titleDiv);
+
+            var metaP = document.createElement('p');
+            metaP.className = 'muted';
+            var parts = [];
+            if (w.level) parts.push(w.level.charAt(0).toUpperCase() + w.level.slice(1));
+            if (w.focusArea) parts.push(w.focusArea);
+            metaP.textContent = parts.join(' • ');
+            card.appendChild(metaP);
+
+            if (w.youtubeUrl) {
+              var iframe = document.createElement('iframe');
+              iframe.width = '100%';
+              iframe.height = '200';
+              iframe.src = w.youtubeUrl;
+              iframe.title = w.title || 'Workout video';
+              iframe.allowFullscreen = true;
+              card.appendChild(iframe);
+            }
+
+            grid.appendChild(card);
+          });
+        })
+        .catch(function () {
+          // On error, keep fallback content.
+        });
+    });
+  </script>
+</body>
+</html>
+

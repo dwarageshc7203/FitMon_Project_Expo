@@ -10,6 +10,7 @@ export interface PatientInput {
   goal: string;
   accuracy_rate: number;
   activation_rate: number;
+  pulse_rate: number;
 }
 
 export interface SessionReport {
@@ -28,7 +29,7 @@ export interface SessionReport {
       coordination_assessment: string;
       fatigue_indicators: string;
     };
-  };
+  }; 
   patient_factors: {
     height: number;
     weight: number;
@@ -272,6 +273,7 @@ Physical Metrics:
   • Weight: ${input.weight} kg
   • BMI: ${input.bmi} (${bmiCategory})
   • Fitness Level: ${input.fitness_experience}
+  • Pulse Rate: ${input.pulse_rate} bpm
 
 Clinical Context:
   • Therapy Indication: ${input.therapy_cause}

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>FitMon – Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body data-page="home">
+  <header class="navbar">
+    <div class="navbar-inner">
+      <a href="/home.html" class="brand">
+        <div class="brand-pill"></div>
+        <span>FitMon</span>
+      </a>
+      <nav class="nav-links">
+        <a href="/home.html" class="active">Home</a>
+        <a href="/profile.html">Profile</a>
+        <a href="/workouts.html">Workout</a>
+        <a href="/session.html">Session</a>
+        <a href="#" data-logout>Logout</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="page-inner">
+      <div class="card">
+        <div class="section-title">
+          Welcome back, <span data-user-name>user</span> 👋
+        </div>
+        <p class="section-subtitle">
+          Role: <span data-user-role>Fitness enthusiast</span>
+        </p>
+        <p class="muted">
+          This is a prototype home screen. The existing doctor and patient dashboards will be
+          visually integrated here once backend wiring is ready.
+        </p>
+      </div>
+
+      <div class="card-grid" style="margin-top: 1.75rem;">
+        <div class="card">
+          <div class="section-title">Live workout session</div>
+          <p class="section-subtitle">
+            Start or join a session using a meeting code on the Session page.
+          </p>
+          <a href="/session.html" class="btn-primary">Go to Session</a>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Your workout feed</div>
+          <p class="section-subtitle">
+            Explore curated YouTube workouts based on your progress and goals.
+          </p>
+          <a href="/workouts.html" class="btn-ghost">Open workouts</a>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Profile &amp; history</div>
+          <p class="section-subtitle">
+            View your health stats, goals and past session summaries.
+          </p>
+          <a href="/profile.html" class="btn-ghost">View profile</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
+

@@ -362,6 +362,13 @@
             <div class="stat-label">FSR Sensor Reading</div>
             <div class="timestamp" id="sensorTimestamp">No data yet</div>
         </div>
+        <!-- Pulse Rate Card -->
+        <div class="card">
+            <h2>💓 Pulse Rate</h2>
+            <div class="stat-value" id="pulseValue">0</div>
+            <div class="stat-label">Heart Rate (bpm)</div>
+            <div class="timestamp" id="pulseTimestamp">No data yet</div>
+        </div>
     </div>
 
     <!-- FSR Sensor Chart -->
@@ -369,6 +376,14 @@
         <h2>📈 Real-Time FSR Sensor Data</h2>
         <div class="chart-container">
             <canvas id="sensorChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Pulse Rate Chart -->
+    <div class="card" style="margin-top: 20px;">
+        <h2>💓 Real-Time Pulse Rate</h2>
+        <div class="chart-container">
+            <canvas id="pulseChart"></canvas>
         </div>
     </div>
 
@@ -414,6 +429,10 @@
                     <label for="activation_rate">Activation Rate (%)</label>
                     <input type="number" id="activation_rate" name="activation_rate" required min="0" max="100" step="0.1" placeholder="66">
                 </div>
+                <div class="form-group">
+                    <label for="pulse_rate">Pulse Rate (bpm)</label>
+                    <input type="number" id="pulse_rate" name="pulse_rate" required min="30" max="220" step="1" placeholder="72">
+                </div>
             </div>
             <button type="submit" class="btn" id="generateBtn">🤖 Generate AI Report</button>
         </form>
@@ -440,9 +459,13 @@
         let repCount = 0;
         let formAccuracy = 0;
         let sensorValue = 0;
+        let pulseValue = 0;
         let sensorChart = null;
+        let pulseChart = null;
         let sensorData = [];
         let sensorLabels = [];
+        let pulseData = [];
+        let pulseLabels = [];
         const maxDataPoints = 50; // Keep last 50 data points
 
         // DOM elements
@@ -451,9 +474,11 @@
         const repCountEl = document.getElementById('repCount');
         const formAccuracyEl = document.getElementById('formAccuracy');
         const sensorValueEl = document.getElementById('sensorValue');
+        const pulseValueEl = document.getElementById('pulseValue');
         const repTimestampEl = document.getElementById('repTimestamp');
         const formTimestampEl = document.getElementById('formTimestamp');
         const sensorTimestampEl = document.getElementById('sensorTimestamp');
+        const pulseTimestampEl = document.getElementById('pulseTimestamp');
         const alertsEl = document.getElementById('alerts');
 
         /**
@@ -513,6 +538,62 @@
         }
 
         /**
+         * Initialize Chart.js for pulse rate data
+         */
+        function initPulseChart() {
+            const ctx = document.getElementById('pulseChart').getContext('2d');
+            pulseChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: pulseLabels,
+                    datasets: [{
+                        label: 'Pulse (bpm)',
+                        data: pulseData,
+                        borderColor: 'rgb(220, 38, 38)',
+                        backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 5,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Pulse (bpm)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                    animation: {
+                        duration: 0
+                    }
+                }
+            });
+        }
+
+        /**
          * Add sensor data point to chart
          */
         function addSensorDataPoint(value, timestamp) {
@@ -528,6 +609,25 @@
             }
 
             sensorChart.update('none'); // 'none' mode for no animation
+        }
+
+        /**
+         * Add pulse data point to chart
+         */
+        function addPulseDataPoint(value, timestamp) {
+            const time = new Date(timestamp).toLocaleTimeString();
+
+            pulseData.push(value);
+            pulseLabels.push(time);
+
+            if (pulseData.length > maxDataPoints) {
+                pulseData.shift();
+                pulseLabels.shift();
+            }
+
+            if (pulseChart) {
+                pulseChart.update('none');
+            }
         }
 
         /**
@@ -567,6 +667,17 @@
             
             // Update chart
             addSensorDataPoint(value, timestamp);
+        }
+
+        /**
+         * Update pulse value display
+         */
+        function updatePulseValue(value, timestamp) {
+            pulseValue = value;
+            pulseValueEl.textContent = value.toFixed(0);
+            pulseTimestampEl.textContent = `Last updated: ${new Date(timestamp).toLocaleTimeString()}`;
+
+            addPulseDataPoint(value, timestamp);
         }
 
         /**
@@ -625,7 +736,13 @@
             // Listen for sensor data from ESP32
             socket.on('sensor-data', (data) => {
                 console.log('📥 Received sensor data:', data);
-                updateSensorValue(data.value, data.timestamp);
+                // Expecting data.value (FSR) and optionally data.pulse for pulse sensor
+                if (typeof data.value === 'number') {
+                    updateSensorValue(data.value, data.timestamp);
+                }
+                if (typeof data.pulse === 'number') {
+                    updatePulseValue(data.pulse, data.timestamp || Date.now());
+                }
             });
         }
 
@@ -659,6 +776,9 @@
                 const activationPercent = (sensorValue / 4095 * 100).toFixed(1);
                 document.getElementById('activation_rate').value = activationPercent;
             }
+            if (pulseValue > 0) {
+                document.getElementById('pulse_rate').value = pulseValue.toFixed(0);
+            }
         }
 
         /**
@@ -679,12 +799,21 @@
                 goal: formData.get('goal'),
                 accuracy_rate: parseFloat(formData.get('accuracy_rate')),
                 activation_rate: parseFloat(formData.get('activation_rate')),
+                pulse_rate: parseFloat(formData.get('pulse_rate')),
+                // Use sessionId from localStorage if available so backend can persist report & progress
+                sessionId: (function () {
+                    try {
+                        return localStorage.getItem('fitmonSessionId') || null;
+                    } catch (e) {
+                        return null;
+                    }
+                })(),
             };
 
             // Validate
             if (!data.height || !data.weight || !data.bmi || !data.fitness_experience || 
                 !data.therapy_cause || !data.goal || 
-                isNaN(data.accuracy_rate) || isNaN(data.activation_rate)) {
+                isNaN(data.accuracy_rate) || isNaN(data.activation_rate) || isNaN(data.pulse_rate)) {
                 showAlert('Please fill in all fields', 'error');
                 return;
             }
@@ -844,6 +973,7 @@
          */
         function init() {
             initChart();
+            initPulseChart();
             connectWebSocket();
             
             // Setup form submission

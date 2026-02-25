@@ -190,6 +190,7 @@ Physical Metrics:
   • Weight: ${input.weight} kg
   • BMI: ${input.bmi} (${bmiCategory})
   • Fitness Level: ${input.fitness_experience}
+  • Pulse Rate: ${input.pulse_rate} bpm
 
 Clinical Context:
   • Therapy Indication: ${input.therapy_cause}

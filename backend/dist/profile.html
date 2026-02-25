@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>FitMon – Profile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body data-page="profile">
+  <header class="navbar">
+    <div class="navbar-inner">
+      <a href="/home.html" class="brand">
+        <div class="brand-pill"></div>
+        <span>FitMon</span>
+      </a>
+      <nav class="nav-links">
+        <a href="/home.html">Home</a>
+        <a href="/profile.html" class="active">Profile</a>
+        <a href="/workouts.html">Workout</a>
+        <a href="/session.html">Session</a>
+        <a href="#" data-logout>Logout</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="page-inner">
+      <h1 class="section-title">Profile</h1>
+      <p class="section-subtitle">
+        This prototype shows static health stats. Later these will be loaded from the database.
+      </p>
+
+      <div class="section-grid">
+        <div class="card">
+          <div class="section-title">Basics</div>
+          <p><strong>Name:</strong> <span data-user-name>user</span></p>
+          <p><strong>Role:</strong> <span data-user-role>Fitness enthusiast</span></p>
+          <p><strong>Age:</strong> 25 (example)</p>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Health stats</div>
+          <div class="stat-row">
+            <span>Height</span>
+            <span>175 cm</span>
+          </div>
+          <div class="stat-row">
+            <span>Weight</span>
+            <span>70 kg</span>
+          </div>
+          <div class="stat-row">
+            <span>BMI</span>
+            <span>22.9</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Goals &amp; cause</div>
+          <p class="muted">
+            Example goal: Build lean muscle and improve form on compound lifts.
+          </p>
+          <p class="muted" style="margin-top: 0.75rem;">
+            Cause: General fitness (this will later be populated from the doctor session notes).
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Session history</div>
+          <p class="muted">
+            Example:
+          </p>
+          <ul class="muted" style="margin-top: 0.5rem; padding-left: 1.1rem;">
+            <li>22 Feb 2026 – Full body strength check-in</li>
+            <li>15 Feb 2026 – Lower body form review</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
+
