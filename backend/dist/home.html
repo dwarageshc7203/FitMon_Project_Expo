@@ -1,69 +1,312 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Home | FitMon</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kenesis - Dashboard</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .welcome-banner {
+      display: flex; align-items: center; gap: 1.5rem; padding: 2.5rem;
+      background: rgba(12, 12, 12, 0.6); border: 1px solid var(--border-dim);
+      border-radius: var(--radius-xl); margin-bottom: 2rem;
+      position: relative; overflow: hidden; backdrop-filter: blur(10px);
+    }
+    .welcome-banner::before {
+      content: ""; position: absolute; top: -50%; right: -10%; width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(0, 230, 118, 0.1) 0%, transparent 70%);
+      pointer-events: none; z-index: -1;
+    }
+    .welcome-banner.blue-theme::before {
+      background: radial-gradient(circle, rgba(41, 121, 255, 0.15) 0%, transparent 70%);
+    }
+
+    .avatar-large {
+      width: 80px; height: 80px; border-radius: 20px;
+      background: var(--bg-layer2); border: 1px solid var(--border-dim);
+      display: flex; align-items: center; justify-content: center;
+      font-family: "Space Grotesk", sans-serif; font-size: 2rem; font-weight: 700;
+      color: var(--text-primary); box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+    
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; margin-bottom: 2.5rem;
+    }
+    @media (max-width: 768px) { .stats-grid { grid-template-columns: 1fr 1fr; } }
+    
+    .stat-card {
+      background: rgba(12, 12, 12, 0.6); border: 1.5px solid var(--border-dim);
+      border-radius: var(--radius-lg); padding: 1.25rem;
+      transition: var(--transition);
+    }
+    .stat-card:hover { border-color: var(--text-muted); transform: translateY(-2px); }
+    
+    .quick-actions-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem;
+    }
+    
+    .action-card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: var(--radius-xl); padding: 1.75rem;
+      display: flex; flex-direction: column; gap: 1rem;
+      text-decoration: none; color: inherit; transition: var(--transition);
+      position: relative; overflow: hidden;
+    }
+    .action-card:hover {
+      transform: translateY(-4px); border-color: var(--green-border);
+      box-shadow: var(--shadow-glow-green);
+    }
+    .action-card.blue:hover { border-color: var(--blue-border); box-shadow: 0 0 20px rgba(41, 121, 255, 0.15); }
+    
+    .action-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted); border: 1px solid var(--border-dim);
+      transition: var(--transition);
+    }
+    .action-card:hover .action-icon { background: var(--green-bright); color: #000; border-color: var(--green-bright); }
+    .action-card.blue:hover .action-icon { background: var(--blue-bright); color: #fff; border-color: var(--blue-bright); }
+    
+    .recent-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .recent-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 1.5rem; background: rgba(12, 12, 12, 0.4);
+      border: 1px solid var(--border-dim); border-radius: var(--radius-lg);
+      transition: var(--transition);
+    }
+    .recent-item:hover { background: rgba(255, 255, 255, 0.03); border-color: var(--text-muted); }
+  </style>
 </head>
 <body data-page="home">
-<nav class="navbar">
-  <a href="/home.html" class="logo">Fit<span>Mon</span></a>
-  <div class="nav-links">
-    <a href="/workouts.html">Workouts</a>
-    <a href="/session.html">Session</a>
-    <a href="/profile.html">Profile</a>
-    <a href="#" data-logout class="btn-ghost" style="font-size:.85rem;">Logout</a>
+  
+  <div class="app-container">
+    <nav class="sidebar">
+        <div class="logo">
+            <div class="logo-icon"></div>
+            <span>KENESIS</span>
+        </div>
+        
+        <div class="nav-menu">
+            <a href="/home.html" class="nav-item active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="/session.html" class="nav-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polygon points="10 8 16 12 10 16 10 8"></polygon>
+                </svg>
+                <span>Live Session</span>
+            </a>
+            <a href="/workouts.html" class="nav-item" id="navWorkouts">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6.5 6.5h11"></path><path d="M6.5 17.5h11"></path><path d="M6 20v-2a6 6 0 1 1 12 0v2"></path><path d="M6 4v2a6 6 0 1 0 12 0V4"></path></svg>
+                <span>Workouts</span>
+            </a>
+            <a href="/profile.html" class="nav-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>Profile</span>
+            </a>
+        </div>
+
+        <div class="user-profile">
+             <div class="user-avatar" id="navAvatar">U</div>
+             <div class="user-info">
+                 <div class="user-name" id="navName">User</div>
+                 <div class="user-role" id="navRole">Athlete</div>
+             </div>
+             <button class="logout-btn" onclick="logout()" title="Sign Out">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+             </button>
+        </div>
+    </nav>
+
+    <main class="main-content">
+      <header class="top-bar">
+          <div class="breadcrumbs">
+              <span>Home</span>
+              <span class="separator">/</span>
+              <span class="current">Overview</span>
+          </div>
+          <div class="top-bar-actions">
+              <div id="dateDisplay" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;"></div>
+          </div>
+      </header>
+
+      <div style="padding: 2rem; max-width: 1200px;">
+        
+        <div class="welcome-banner" id="welcomeBanner">
+          <div class="avatar-large" id="bannerAvatar">U</div>
+          <div style="flex: 1;">
+            <div class="eyebrow" style="margin-bottom: 0.25rem;">Welcome back</div>
+            <h1 style="margin: 0; font-size: 1.8rem;">
+              <span id="bannerName">User</span>
+              <span class="status-pill" id="bannerRole" style="margin-left: 1rem; vertical-align: middle;">ATHLETE</span>
+            </h1>
+            <p class="text-muted" style="margin-top: 0.5rem; max-width: 500px;" id="bannerDesc">Track your progress and stay consistent.</p>
+          </div>
+          <div style="text-align: right; display: none;" id="doctorStats">
+             <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Active Patients</div>
+             <div style="font-size: 2rem; font-weight: 700; color: var(--blue-bright);">4</div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="metric-label">Total Sessions</div>
+            <div class="metric-val">12</div>
+          </div>
+          <div class="stat-card">
+            <div class="metric-label">Avg. Score</div>
+            <div class="metric-val green">84%</div>
+          </div>
+          <div class="stat-card">
+            <div class="metric-label">Streak</div>
+            <div class="metric-val blue">3 <span style="font-size: 1rem; color: var(--text-muted);">days</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="metric-label">Focus</div>
+            <div style="font-size: 1.2rem; font-weight: 600; color: var(--text-primary); margin-top: 0.5rem;">Mobility</div>
+          </div>
+        </div>
+
+        <h3 class="section-title">Quick Actions</h3>
+        <div class="quick-actions-grid">
+           
+           <a href="/session.html" class="action-card">
+             <div class="action-icon">
+               <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+             </div>
+             <div>
+               <div class="q-lbl" style="font-weight: 700; font-size: 1.1rem; margin-bottom: 0.25rem;">Live Session</div>
+               <div class="text-muted" style="font-size: 0.9rem;" id="quickSessionDesc">Join a monitored session</div>
+             </div>
+           </a>
+
+           <a href="/workouts.html" class="action-card blue" id="cardWorkouts">
+             <div class="action-icon">
+               <svg class="icon" viewBox="0 0 24 24"><path d="M6.5 6.5h11"></path><path d="M6.5 17.5h11"></path><path d="M6 20v-2a6 6 0 1 1 12 0v2"></path><path d="M6 4v2a6 6 0 1 0 12 0V4"></path></svg>
+             </div>
+             <div>
+               <div class="q-lbl" style="font-weight: 700; font-size: 1.1rem; margin-bottom: 0.25rem;">Workout Hub</div>
+               <div class="text-muted" style="font-size: 0.9rem;">Browse library</div>
+             </div>
+           </a>
+
+           <a href="/profile.html" class="action-card">
+             <div class="action-icon">
+               <svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+             </div>
+             <div>
+               <div class="q-lbl" style="font-weight: 700; font-size: 1.1rem; margin-bottom: 0.25rem;">My Profile</div>
+               <div class="text-muted" style="font-size: 0.9rem;">Update settings</div>
+             </div>
+           </a>
+
+           <!-- AI Mode: ONLY for Athletes -->
+           <a href="/patient.html" class="action-card" id="cardAI" style="border-color: var(--purple-border);" onclick="localStorage.setItem('fitmonSoloMode', 'true');">
+             <div class="action-icon" style="color: var(--purple-bright);">
+               <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><circle cx="15.5" cy="8.5" r="1.5"></circle><path d="M15 13a3 3 0 0 1-6 0"></path></svg>
+             </div>
+             <div>
+               <div class="q-lbl" style="font-weight: 700; font-size: 1.1rem; margin-bottom: 0.25rem; color: var(--purple-bright);">AI Solomode</div>
+               <div class="text-muted" style="font-size: 0.9rem;">Self-guided training</div>
+             </div>
+           </a>
+
+        </div>
+
+        <h3 class="section-title">Recent Activity</h3>
+        <div class="recent-list" id="recentList">
+           <div class="recent-item">
+             <div style="display: flex; align-items: center; gap: 1rem;">
+               <div style="width: 40px; height: 40px; background: rgba(0, 230, 118, 0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--green-bright);">
+                 <svg class="icon" viewBox="0 0 24 24"><path d="M20.2 17.6l-2.8-7.2c-.4-1-1.2-1.8-2.2-2.2L8 5.4c-1.4-.6-2.9.4-2.3 1.8l2.8 7.2c.4 1 1.2 1.8 2.2 2.2l7.2 2.8c1.4.6 2.9-.4 2.3-1.8z" fill="currentColor"/></svg>
+               </div>
+               <div>
+                  <div style="font-weight: 600;">Upper Body Rehab</div>
+                  <div class="text-muted" style="font-size: 0.8rem;">Yesterday · 45 mins</div>
+               </div>
+             </div>
+             <div style="font-weight: 700; color: var(--green-bright);">92%</div>
+           </div>
+           
+           <div class="recent-item">
+             <div style="display: flex; align-items: center; gap: 1rem;">
+               <div style="width: 40px; height: 40px; background: rgba(41, 121, 255, 0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--blue-bright);">
+                 <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+               </div>
+               <div>
+                  <div style="font-weight: 600;">Mobility Check</div>
+                  <div class="text-muted" style="font-size: 0.8rem;">3 days ago · 20 mins</div>
+               </div>
+             </div>
+             <div style="font-weight: 700; color: var(--blue-bright);">88%</div>
+           </div>
+        </div>
+
+      </div>
+    </main>
   </div>
-</nav>
+  
+  <script src="/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById("dateDisplay").textContent = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+        
+        // Load User
+        const user = getCurrentUser(); // from app.js
+        if (!user) { window.location.href = '/login.html'; return; }
+        
+        // Update Sidebar & Banner
+        document.getElementById('navName').textContent = user.username;
+        document.getElementById('navRole').textContent = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+        const initial = user.username.charAt(0).toUpperCase();
+        document.getElementById('navAvatar').textContent = initial;
+        document.getElementById('bannerAvatar').textContent = initial;
+        document.getElementById('bannerName').textContent = user.username;
+        
+        // Role Specific Logic
+        const isDoctor = user.role === 'doctor';
+        
+        if (isDoctor) {
+            // Adjust Banner
+            document.getElementById('bannerRole').textContent = 'CONSULTANT';
+            document.getElementById('welcomeBanner').classList.add('blue-theme');
+            document.getElementById('bannerDesc').textContent = 'Manage your patients and monitor live sessions.';
+            document.getElementById('doctorStats').style.display = 'block';
+            
+            // Adjust specific text
+            document.getElementById('quickSessionDesc').textContent = 'Create a new session code';
+            
+            // HIDE Workouts & AI Logic
+            const navWorkouts = document.getElementById('navWorkouts');
+            if(navWorkouts) navWorkouts.style.display = 'none';
+            
+            const cardWorkouts = document.getElementById('cardWorkouts');
+            if(cardWorkouts) cardWorkouts.style.display = 'none';
+            
+            const cardAI = document.getElementById('cardAI');
+            if(cardAI) cardAI.style.display = 'none';
 
-<main style="max-width:1100px;margin:2rem auto;padding:0 1.5rem;">
+        } else {
+            // Athlete View
+            document.getElementById('bannerRole').textContent = 'ATHLETE';
+            // Keep Workouts & AI visible
+        }
+    });
 
-  <!-- Welcome Banner -->
-  <div class="card" style="display:flex;align-items:center;gap:1.5rem;padding:2rem;margin-bottom:2rem;background:linear-gradient(135deg,rgba(34,197,94,.08),rgba(74,222,128,.04));">
-    <div id="homeAvatar" style="width:64px;height:64px;border-radius:50%;background:var(--accent);color:#000;font-size:1.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">U</div>
-    <div>
-      <div style="color:var(--text-muted);font-size:.9rem;margin-bottom:.2rem;">Welcome back</div>
-      <h1 style="font-size:1.7rem;font-weight:700;color:var(--text-primary);margin:0 0 .3rem;" data-user-name>User</h1>
-      <span id="roleBadge" style="background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.3);border-radius:20px;padding:.25rem .8rem;font-size:.8rem;font-weight:600;">Role</span>
-    </div>
-  </div>
-
-  <!-- Quick Nav Cards -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;">
-
-    <a href="/workouts.html" class="card" style="text-decoration:none;padding:1.8rem;display:block;transition:transform .2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-      <div style="font-size:2.2rem;margin-bottom:1rem;">🏋️</div>
-      <div style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin-bottom:.4rem;">Workout Feed</div>
-      <div style="font-size:.9rem;color:var(--text-muted);">Personalized exercises based on your progress and profile.</div>
-      <div style="margin-top:1.2rem;color:var(--accent);font-size:.85rem;font-weight:600;">View workouts →</div>
-    </a>
-
-    <a href="/session.html" class="card" style="text-decoration:none;padding:1.8rem;display:block;transition:transform .2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-      <div style="font-size:2.2rem;margin-bottom:1rem;">📡</div>
-      <div style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin-bottom:.4rem;">Live Session</div>
-      <div id="sessionCardDesc" style="font-size:.9rem;color:var(--text-muted);">Connect with your doctor or patient for a live monitored session.</div>
-      <div style="margin-top:1.2rem;color:var(--accent);font-size:.85rem;font-weight:600;">Open session →</div>
-    </a>
-
-    <a href="/profile.html" class="card" style="text-decoration:none;padding:1.8rem;display:block;transition:transform .2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-      <div style="font-size:2.2rem;margin-bottom:1rem;">👤</div>
-      <div style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin-bottom:.4rem;">Your Profile</div>
-      <div style="font-size:.9rem;color:var(--text-muted);">Update your health stats, goals and view past session history.</div>
-      <div style="margin-top:1.2rem;color:var(--accent);font-size:.85rem;font-weight:600;">View profile →</div>
-    </a>
-
-  </div>
-</main>
-
-<div class="toast-container" id="toastContainer"></div>
-<script>
-  (function(){
-    try { const u=JSON.parse(localStorage.getItem('fitmonCurrentUser')||'null'); if(!u)window.location.href='/login.html'; } catch(e){ window.location.href='/login.html'; }
-  })();
-</script>
-<script src="/app.js"></script>
+    function logout() {
+      localStorage.removeItem('fitmonCurrentUser');
+      window.location.href = '/login.html';
+    }
+  </script>
 </body>
 </html>

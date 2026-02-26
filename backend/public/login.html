@@ -1,79 +1,66 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>FitMon – Login</title>
+  <title>Kenesis � Sign In</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    .auth-wrap {
-      display: grid; grid-template-columns: 1fr 1fr; min-height: calc(100vh - 60px);
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: -1;
+      background: radial-gradient(circle at 20% 50%, rgba(0, 230, 118, 0.08) 0%, transparent 50%),
+                  radial-gradient(circle at 80% 80%, rgba(41, 121, 255, 0.08) 0%, transparent 50%),
+                  #030303;
     }
-    .auth-side {
-      background: linear-gradient(160deg, #0d2c1a 0%, #050816 60%);
-      display: flex; flex-direction: column; justify-content: center;
-      padding: 3rem; border-right: 1px solid rgba(34,197,94,0.1);
+    .auth-page{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem;position:relative;}
+    .auth-card{
+      width:100%;max-width:440px;background:rgba(12, 12, 12, 0.8);border:1px solid rgba(255, 255, 255, 0.08);
+      padding:3rem;border-radius:24px;backdrop-filter:blur(24px);box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      position: relative; overflow: hidden;
     }
-    .auth-side-title { font-size: 2rem; font-weight: 900; margin-bottom: 0.75rem; }
-    .auth-side-sub { color: var(--text-muted); font-size: 0.9rem; line-height: 1.7; max-width: 26rem; }
-    .auth-side-bullets { list-style: none; margin-top: 1.75rem; display: flex; flex-direction: column; gap: 0.8rem; }
-    .auth-side-bullets li { display: flex; align-items: center; gap: 0.65rem; font-size: 0.875rem; color: var(--text-soft); }
-    .auth-side-bullets li::before { content: "✓"; color: var(--accent); font-weight: 700; }
-    .auth-form-wrap { display: flex; flex-direction: column; justify-content: center; padding: 3rem; }
-    @media (max-width: 700px) {
-      .auth-wrap { grid-template-columns: 1fr; }
-      .auth-side { display: none; }
+    .auth-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 230, 118, 0.5), transparent);
     }
+    .auth-brand{justify-content:center;margin-bottom:2.5rem;font-size:1.4rem;}
+    .auth-head{text-align:center;margin-bottom:2.5rem;}
+    .auth-title{font-size:1.75rem;font-weight:700;margin-bottom:0.75rem;font-family: 'Space Grotesk', sans-serif;}
+    .auth-sub{color:var(--text-muted);font-size:0.95rem;}
+    .auth-foot{text-align:center;margin-top:2rem;font-size:0.9rem;color:var(--text-muted);}
+    .auth-foot a{color:var(--green-bright);font-weight:600;transition: color 0.2s;}
+    .auth-foot a:hover{color: #fff;}
   </style>
 </head>
 <body data-page="login">
-  <header class="navbar">
-    <div class="navbar-inner">
-      <a href="/index.html" class="brand"><div class="brand-pill"></div><span>FitMon</span></a>
-      <nav class="nav-links">
-        <a href="/login.html" class="active">Login</a>
-        <a href="/signup.html">Sign up</a>
-      </nav>
-    </div>
-  </header>
+  <div class="auth-page">
+    <div class="auth-card">
+      <a href="/index.html" class="brand auth-brand">
+        <div class="brand-pill"></div>
+        <span>Kenesis</span>
+      </a>
 
-  <div class="auth-wrap">
-    <div class="auth-side">
-      <div class="hero-eyebrow" style="margin-bottom:1rem;">&#128274; Secure Access</div>
-      <h2 class="auth-side-title">Welcome back<br /><span class="gradient-text">to FitMon</span></h2>
-      <p class="auth-side-sub">Pick up where you left off — your workout history, session data, and doctor reports are all waiting.</p>
-      <ul class="auth-side-bullets">
-        <li>Real-time pose &amp; rep tracking</li>
-        <li>FSR muscle activation monitoring</li>
-        <li>AI-generated session reports</li>
-        <li>Personalized YouTube workout feed</li>
-      </ul>
-    </div>
+      <div class="auth-head">
+        <h1 class="auth-title">Welcome back</h1>
+        <p class="auth-sub">Enter your credentials to access the dashboard</p>
+      </div>
 
-    <div class="auth-form-wrap">
-      <div class="form-card" style="max-width:400px;">
-        <h1 class="form-title">Sign in</h1>
-        <p class="form-subtitle">Enter your FitMon credentials below.</p>
+      <div id="loginError" style="display:none;background:rgba(255,23,68,0.1);border:1px solid rgba(255,23,68,0.2);color:#ff5252;padding:0.75rem;border-radius:6px;font-size:0.85rem;margin-bottom:1.5rem;text-align:center"></div>
 
-        <div id="loginError" class="alert-banner error" style="display:none;"></div>
-
-        <form id="loginForm">
-          <div class="form-field">
-            <label for="username">Username</label>
-            <input id="username" name="username" type="text" required placeholder="yourname" autocomplete="username" />
-          </div>
-          <div class="form-field">
-            <label for="password">Password</label>
-            <input id="password" name="password" type="password" required placeholder="••••••••" autocomplete="current-password" />
-          </div>
-          <button class="btn-primary btn-block" type="submit" id="loginBtn" style="margin-top:0.5rem;">
-            Sign in
-          </button>
-        </form>
-
-        <div class="form-footer" style="margin-top:1.5rem;">
-          New to FitMon? <a href="/signup.html">Create an account &rarr;</a>
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="username">Username</label>
+          <input id="username" type="text" class="form-input" placeholder="coach_alex" autocomplete="username" required />
         </div>
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input id="password" type="password" class="form-input" placeholder="��������" autocomplete="current-password" required />
+        </div>
+        <button type="submit" class="btn-primary btn-block" style="width:100%">Sign In</button>
+      </form>
+
+      <div class="auth-foot">
+        Don't have an account? <a href="/signup.html">Create one</a>
       </div>
     </div>
   </div>

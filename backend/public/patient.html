@@ -1,178 +1,550 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Patient Session | FitMon</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/styles.css">
-<script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
-<script>const socket = io(window.location.origin);</script>
-<style>
-  .patient-layout { max-width: 800px; margin: 0 auto; padding: 2rem 1rem; }
-  .session-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
-  .session-header h1 { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); }
-  .session-header .badge { background: rgba(34,197,94,.15); color: #4ade80; border: 1px solid rgba(34,197,94,.3); border-radius: 20px; padding: .3rem .9rem; font-size: .8rem; font-weight: 600; }
-  .camera-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-lg); padding: 1rem; margin-bottom: 1.5rem; }
-  .camera-card video, .camera-card canvas { width: 100%; border-radius: var(--radius-md); background: #000; display: block; }
-  .camera-card canvas { margin-top: .5rem; }
-  .cam-controls { display: flex; gap: .75rem; margin-top: 1rem; align-items: center; flex-wrap: wrap; }
-  .cam-status { font-size: .9rem; color: var(--text-muted); flex: 1; }
-  .stat-pill { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: .6rem 1.2rem; font-size: 1rem; font-weight: 700; color: var(--accent); display: inline-flex; align-items: center; gap: .4rem; }
-  .stat-pill span { font-size: .75rem; font-weight: 400; color: var(--text-muted); }
-  .btn-cam { padding: .6rem 1.4rem; font-size: .9rem; border-radius: var(--radius-md); border: none; cursor: pointer; font-weight: 600; transition: opacity .2s; }
-  .btn-cam.start { background: var(--accent); color: #000; }
-  .btn-cam.stop { background: #ef4444; color: #fff; }
-  .btn-cam:disabled { opacity: .45; cursor: not-allowed; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kenesis - Live Athlete Session</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+  <style>
+    .camera-layout { display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; margin-bottom: 1.5rem; }
+    @media (max-width: 1024px) { .camera-layout { grid-template-columns: 1fr; } }
+
+    .camera-feed {
+      background: #000; border: 1px solid var(--border-dim);
+      border-radius: var(--radius-xl); overflow: hidden; position: relative;
+      aspect-ratio: 16/9; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    }
+    .camera-feed video, .camera-feed canvas {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      position: absolute; top: 0; left: 0;
+    }
+    .camera-feed canvas { z-index: 10; pointer-events: none; }
+    
+    .live-badge {
+      position: absolute; top: 1.5rem; left: 1.5rem; z-index: 20;
+      display: flex; align-items: center; gap: 0.5rem;
+      background: rgba(0, 0, 0, 0.8); border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0.5rem 1rem; border-radius: var(--radius-pill);
+      font-size: 0.8rem; font-weight: 700; backdrop-filter: blur(8px);
+    }
+    .live-badge.recording { color: var(--danger-bright); }
+    .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger-bright); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    .stats-sidebar {
+      background: rgba(12, 12, 12, 0.6); border: 1px solid var(--border-dim);
+      border-radius: var(--radius-xl); padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem;
+    }
+    
+    .rep-display {
+      text-align: center; padding: 2rem 1rem;
+      background: rgba(0, 230, 118, 0.05); border: 1px solid rgba(0, 230, 118, 0.2);
+      border-radius: var(--radius-lg);
+    }
+    .rep-val {
+      font-family: "Space Grotesk", sans-serif; font-size: 5rem; font-weight: 700;
+      color: var(--green-bright); line-height: 1; text-shadow: 0 0 20px rgba(0, 230, 118, 0.3);
+    }
+    .rep-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-top: 0.75rem; }
+
+    .stat-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-dim); border-radius: var(--radius-md);
+    }
+    .stat-label { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+    .stat-value { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); font-family: "Space Grotesk"; }
+    .stat-value.green { color: var(--green-bright); }
+    .stat-value.blue { color: var(--blue-bright); }
+
+    .progress-bar { margin-top: 0.5rem; height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--green-bright); width: 0%; transition: width 0.3s ease; box-shadow: 0 0 8px var(--green-bright); }
+
+    .control-panel { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .control-btn {
+      flex: 1; min-width: 140px; padding: 0.85rem 1rem;
+      background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-dim);
+      border-radius: var(--radius-md); color: var(--text-primary);
+      font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: var(--transition);
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    }
+    .control-btn:hover { border-color: var(--text-muted); background: rgba(255, 255, 255, 0.05); }
+    .control-btn.primary { background: var(--green-bright); color: #000; border-color: var(--green-bright); }
+    .control-btn.primary:hover { box-shadow: var(--shadow-glow-green); transform: translateY(-1px); }
+    .control-btn.danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+    .exercise-select-modal {
+      position: fixed; inset: 0; z-index: 1000; background: rgba(0, 0, 0, 0.95);
+      display: none; align-items: center; justify-content: center; padding: 2rem; backdrop-filter: blur(10px);
+    }
+    .exercise-select-modal.active { display: flex; }
+    
+    .modal-content {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: var(--radius-xl); padding: 2.5rem; max-width: 700px; width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative;
+    }
+    .modal-header { margin-bottom: 1.5rem; }
+    .modal-title { font-size: 1.5rem; font-weight: 700; font-family: "Space Grotesk"; }
+    
+    .exercise-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .exercise-option {
+      background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-dim);
+      border-radius: var(--radius-lg); padding: 1.25rem 0.75rem;
+      display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+      cursor: pointer; transition: var(--transition); text-align: center;
+    }
+    .exercise-option:hover { border-color: var(--green-border); background: rgba(0, 230, 118, 0.05); }
+    .exercise-option.selected { border-color: var(--green-bright); background: rgba(0, 230, 118, 0.1); box-shadow: 0 0 15px rgba(0, 230, 118, 0.15); }
+    .exercise-option svg { width: 28px; height: 28px; color: var(--text-muted); }
+    .exercise-option.selected svg { color: var(--green-bright); }
+    .exercise-option-label { font-size: 0.8rem; font-weight: 600; }
+
+    .banner-active-ex {
+      display: none; align-items: center; gap: 1rem; padding: 1rem 1.5rem;
+      background: rgba(0, 230, 118, 0.05); border: 1px solid rgba(0, 230, 118, 0.2);
+      border-radius: var(--radius-lg); margin-bottom: 1.5rem;
+    }
+    .banner-active-ex.active { display: flex; }
+  </style>
 </head>
-<body>
-<nav class="navbar">
-  <a href="/home.html" class="logo">Fit<span>Mon</span></a>
-  <div class="nav-links">
-    <a href="/home.html">Home</a>
-    <a href="/workouts.html">Workouts</a>
-    <a href="/profile.html">Profile</a>
-    <a href="/session.html">Session</a>
-    <a href="#" data-logout class="btn-ghost" style="font-size:.85rem;">Logout</a>
-  </div>
-</nav>
+<body data-page="patient">
+  
+  <div class="app-container">
+    <nav class="sidebar">
+        <div class="logo">
+            <div class="logo-icon"></div>
+            <span>KENESIS</span>
+        </div>
+        
+        <div class="nav-menu">
+            <a href="/home.html" class="nav-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="/session.html" class="nav-item active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polygon points="10 8 16 12 10 16 10 8"></polygon>
+                </svg>
+                <span>Live Session</span>
+            </a>
+            <a href="/workouts.html" class="nav-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6.5 6.5h11"></path><path d="M6.5 17.5h11"></path><path d="M6 20v-2a6 6 0 1 1 12 0v2"></path><path d="M6 4v2a6 6 0 1 0 12 0V4"></path></svg>
+                <span>Workouts</span>
+            </a>
+            <a href="/profile.html" class="nav-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>Profile</span>
+            </a>
+        </div>
 
-<div class="patient-layout">
-  <div class="session-header">
-    <h1>Live Patient Session</h1>
-    <span class="badge" id="sessionCodeBadge">Loading code…</span>
+        <div class="user-profile">
+             <div class="user-avatar" id="navAvatar">U</div>
+             <div class="user-info">
+                 <div class="user-name" id="navName">Athlete</div>
+                 <div class="user-role" id="navRole">In Session</div>
+             </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+      <header class="top-bar">
+          <div class="breadcrumbs">
+              <span>Session</span>
+              <span class="separator">/</span>
+              <span class="current">Live Training</span>
+          </div>
+          <div class="top-bar-actions">
+              <div class="status-indicator online" id="connStatus">
+                  <div class="status-dot"></div>
+                  <span>Connecting...</span>
+              </div>
+          </div>
+      </header>
+
+      <div style="padding: 2rem;">
+        <div class="banner-active-ex" id="activeExBanner">
+          <div style="width: 40px; height: 40px; background: rgba(0, 230, 118, 0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--green-bright);">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          </div>
+          <div style="flex: 1;">
+            <div style="font-weight: 700; font-size: 1rem;" id="activeExName">No Exercise Selected</div>
+            <div class="text-muted" style="font-size: 0.85rem;">Select an exercise to begin tracking</div>
+          </div>
+          <button class="control-btn" onclick="openExerciseModal()" style="flex: none; min-width: auto;">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+            Change
+          </button>
+        </div>
+
+        <div class="camera-layout">
+          <div>
+            <div class="camera-feed" id="cameraFeed">
+              <video id="webcam" autoplay playsinline muted></video>
+              <canvas id="poseCanvas"></canvas>
+              <div class="live-badge" id="liveBadge">
+                <div class="rec-dot"></div>
+                <span>CAMERA OFF</span>
+              </div>
+            </div>
+            
+            <div class="control-panel" style="margin-top: 1.5rem;">
+              <button class="control-btn primary" id="toggleCameraBtn" onclick="toggleCamera()">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z" fill="currentColor"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                Start Camera
+              </button>
+              <button class="control-btn" id="selectExBtn" onclick="openExerciseModal()">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M9 11H3v2h6v-2zm0 4H3v2h6v-2zm0-8H3v2h6V7zm8 0v10h6V7h-6z" fill="currentColor"/></svg>
+                Select Exercise
+              </button>
+              <button class="control-btn danger" onclick="endSession()">
+                <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                End Session
+              </button>
+            </div>
+          </div>
+
+          <div class="stats-sidebar">
+            <div class="rep-display">
+              <div class="rep-val" id="repCounter">0</div>
+              <div class="rep-label">Repetitions</div>
+            </div>
+
+            <div class="stat-item">
+              <div>
+                <div class="stat-label">Form Score</div>
+                <div class="progress-bar"><div class="progress-fill" id="formProgress" style="width: 0%;"></div></div>
+              </div>
+              <div class="stat-value green" id="formScore">0%</div>
+            </div>
+
+            <div class="stat-item">
+              <div class="stat-label">Muscle Activation</div>
+              <div class="stat-value blue" id="muscleActivation">0%</div>
+            </div>
+
+            <div class="stat-item">
+              <div class="stat-label">Heart Rate</div>
+              <div class="stat-value" id="heartRate" style="color: #f87171;">--</div>
+            </div>
+
+            <div class="stat-item">
+              <div class="stat-label">Session Time</div>
+              <div class="stat-value" id="sessionTime">00:00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
   </div>
 
-  <div class="camera-card">
-    <video id="video" autoplay playsinline muted></video>
-    <canvas id="canvas"></canvas>
-    <div class="cam-controls">
-      <button class="btn-cam start" id="startBtn">Start Camera</button>
-      <button class="btn-cam stop" id="stopBtn" disabled>Stop Camera</button>
-      <span class="cam-status" id="status">Idle — camera not started</span>
-      <div class="stat-pill">🔁 <span>Reps</span> <span id="repCount">0</span></div>
+  <!-- Exercise Selection Modal -->
+  <div class="exercise-select-modal" id="exerciseModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">Select Exercise</div>
+        <p class="text-muted" style="margin-top: 0.5rem;">Choose the movement you'll be performing</p>
+      </div>
+      
+      <div class="exercise-grid" id="exerciseGrid">
+        <div class="exercise-option" data-exercise="squat" onclick="selectExercise('squat', 'Squats')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2"/><path d="M12 7v4m0 0l-3 6m3-6l3 6"/></svg>
+          <div class="exercise-option-label">Squats</div>
+        </div>
+        <div class="exercise-option" data-exercise="pushup" onclick="selectExercise('pushup', 'Push-ups')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v8m0 0l-4-4m4 4l4-4m-4 8v8"/></svg>
+          <div class="exercise-option-label">Push-ups</div>
+        </div>
+        <div class="exercise-option" data-exercise="lunge" onclick="selectExercise('lunge', 'Lunges')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          <div class="exercise-option-label">Lunges</div>
+        </div>
+        <div class="exercise-option" data-exercise="curl" onclick="selectExercise('curl', 'Bicep Curls')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9h12M6 15h12M10 21V3m4 18V3"/></svg>
+          <div class="exercise-option-label">Bicep Curls</div>
+        </div>
+        <div class="exercise-option" data-exercise="plank" onclick="selectExercise('plank', 'Plank Hold')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          <div class="exercise-option-label">Plank</div>
+        </div>
+        <div class="exercise-option" data-exercise="row" onclick="selectExercise('row', 'Rows')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <div class="exercise-option-label">Rows</div>
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="closeExerciseModal()" style="width: 100%; padding: 0.85rem;">
+        Confirm Selection
+      </button>
     </div>
   </div>
-</div>
+  
+  <script src="/app.js"></script>
+  <script>
+    const socket = io(window.location.origin);
 
-<div class="toast-container" id="toastContainer"></div>
-<script src="/app.js"></script>
-<script>
-// Join the session room so CV updates go to the right doctor
-(function joinPatientRoom() {
-  try {
-    const code = localStorage.getItem('fitmonSessionCode') || '';
-    if (!code) return;
-    // Wait for socket to be ready
-    const tryJoin = setInterval(() => {
-      if (typeof socket !== 'undefined' && socket.connected) {
-        socket.emit('join-session', { code, role: 'patient' });
-        clearInterval(tryJoin);
-        console.log('Patient joined room session-' + code);
-      }
-    }, 200);
-    // Also listen after reconnect
-    socket.on('connect', () => { socket.emit('join-session', { code, role: 'patient' }); });
-    // Doctor online/offline
-    socket.on('peer-joined', () => {
-      const s = document.getElementById('status');
-      if (s) s.textContent = 'Doctor is watching...';
-    });
-    socket.on('peer-left', () => {
-      const s = document.getElementById('status');
-      if (s) s.textContent = 'Doctor disconnected';
-    });
-  } catch(e) {}
-})();
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose_connections.js"></script>
-<script>
-(function() {
-  // Show session code in badge
-  try {
-    const code = localStorage.getItem('fitmonSessionCode');
-    const badge = document.getElementById('sessionCodeBadge');
-    if (code && badge) badge.textContent = 'Code: ' + code;
-    else if (badge) badge.textContent = 'No session code';
-  } catch(e) {}
+    // ─── State ───────────────────────────────────────────────────────────────
+    let currentExercise   = null;
+    let cameraActive      = false;
+    let sessionStartTime  = null;
+    let poseModel         = null;   // MediaPipe Pose instance
+    let mpCamera          = null;   // MediaPipe Camera helper
+    let poseReady         = false;
+    let repCount          = 0;
+    let isDown            = false;
+    let formAccuracySum   = 0;
+    let formAccuracyCount = 0;
+    let lastEmittedReps   = -1;
+    let soloMode          = false;
 
-  const video = document.getElementById("video");
-  const canvas = document.getElementById("canvas");
-  const ctx = canvas.getContext("2d");
-  const statusEl = document.getElementById("status");
-  const repEl = document.getElementById("repCount");
-  const startBtn = document.getElementById("startBtn");
-  const stopBtn = document.getElementById("stopBtn");
+    // ─── Exercise joint configurations ───────────────────────────────────────
+    // joints: [a, b, c] landmark indices for angle(a-b-c)
+    // downAngle: threshold to consider "bottom" of movement
+    // upAngle:   threshold to consider "top" (rep complete)
+    const EXERCISE_CONFIG = {
+      squat:  { joints: [23, 25, 27], downAngle: 90,  upAngle: 165 },
+      pushup: { joints: [11, 13, 15], downAngle: 80,  upAngle: 160 },
+      lunge:  { joints: [23, 25, 27], downAngle: 90,  upAngle: 165 },
+      curl:   { joints: [11, 13, 15], downAngle: 50,  upAngle: 160 },
+      plank:  { joints: [11, 23, 25], downAngle: 155, upAngle: 175 },
+      row:    { joints: [12, 14, 16], downAngle: 80,  upAngle: 160 },
+    };
 
-  let pose, camera;
-  let repCount = 0;
-  let armUp = false;
-  let formScore = 85;
+    // ─── Angle helper ─────────────────────────────────────────────────────────
+    function calcAngle(a, b, c) {
+      const r = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
+      let deg = Math.abs(r * 180 / Math.PI);
+      if (deg > 180) deg = 360 - deg;
+      return deg;
+    }
 
-  function onResults(results) {
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.save();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-    if (results.poseLandmarks) {
-      drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS);
-      drawLandmarks(ctx, results.poseLandmarks, { radius: 4 });
+    function getExerciseCfg() {
+      const id = currentExercise ? currentExercise.id : 'squat';
+      return EXERCISE_CONFIG[id] || EXERCISE_CONFIG.squat;
+    }
+
+    // ─── Pose results handler ─────────────────────────────────────────────────
+    function onPoseResults(results) {
+      const canvas = document.getElementById('poseCanvas');
+      const video  = document.getElementById('webcam');
+      const ctx    = canvas.getContext('2d');
+
+      canvas.width  = video.videoWidth  || 640;
+      canvas.height = video.videoHeight || 480;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (!results.poseLandmarks) return;
+
+      // Draw skeleton overlay
+      drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS,
+        { color: '#00e676', lineWidth: 2 });
+      drawLandmarks(ctx, results.poseLandmarks,
+        { color: '#ffffff', lineWidth: 1, radius: 3 });
+
       const lm = results.poseLandmarks;
-      const shoulder = lm[11], elbow = lm[13], wrist = lm[15];
-      const angle = calcAngle(shoulder, elbow, wrist);
-      if (angle < 50 && !armUp) armUp = true;
-      if (angle > 160 && armUp) {
+      const { joints, downAngle, upAngle } = getExerciseCfg();
+      const [ai, bi, ci] = joints;
+
+      if (!lm[ai] || !lm[bi] || !lm[ci]) return;
+
+      const angle = calcAngle(lm[ai], lm[bi], lm[ci]);
+
+      // Accumulate form accuracy score each frame
+      const range = Math.abs(upAngle - downAngle);
+      const frameAccuracy = Math.max(0, Math.min(
+        100, 100 - (Math.abs(angle - (isDown ? downAngle : upAngle)) / range) * 60
+      ));
+      formAccuracySum   += frameAccuracy;
+      formAccuracyCount += 1;
+
+      // Rep detection: down-phase then up-phase = 1 rep
+      if (!isDown && angle < downAngle) {
+        isDown = true;
+      } else if (isDown && angle > upAngle * 0.9) {
+        isDown = false;
         repCount++;
-        repEl.textContent = repCount;
-        armUp = false;
-        socket.emit("cv-update", { reps: repCount, formAccuracy: formScore, timestamp: Date.now() });
+
+        const avgAccuracy = formAccuracyCount > 0
+          ? Math.round(formAccuracySum / formAccuracyCount) : 75;
+        formAccuracySum   = 0;
+        formAccuracyCount = 0;
+
+        // Update local UI immediately
+        document.getElementById('repCounter').textContent = repCount;
+        document.getElementById('formScore').textContent  = avgAccuracy + '%';
+        document.getElementById('formProgress').style.width = avgAccuracy + '%';
+
+        // Broadcast to doctor via socket (skipped silently in solo mode)
+        if (repCount !== lastEmittedReps) {
+          socket.emit('cv-update', {
+            reps: repCount,
+            formAccuracy: avgAccuracy,
+            timestamp: Date.now(),
+          });
+          lastEmittedReps = repCount;
+        }
       }
     }
-    ctx.restore();
-  }
 
-  function calcAngle(a, b, c) {
-    const AB = Math.atan2(c.y - b.y, c.x - b.x);
-    const BC = Math.atan2(a.y - b.y, a.x - b.x);
-    let angle = Math.abs(AB - BC) * 180 / Math.PI;
-    if (angle > 180) angle = 360 - angle;
-    return angle;
-  }
-
-  startBtn.onclick = async () => {
-    try {
-      pose = new Pose({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}` });
-      pose.setOptions({ modelComplexity: 1, minTrackingConfidence: 0.5, minDetectionConfidence: 0.5 });
-      pose.onResults(onResults);
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      video.srcObject = stream;
-      camera = new Camera(video, {
-        onFrame: async () => await pose.send({ image: video }),
-        width: 640, height: 480
+    // ─── MediaPipe initialisation ─────────────────────────────────────────────
+    async function initPose() {
+      if (poseReady) return;
+      poseModel = new Pose({
+        locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`,
       });
-      await camera.start();
-      statusEl.textContent = "Camera active — tracking pose";
-      startBtn.disabled = true;
-      stopBtn.disabled = false;
-    } catch (e) {
-      statusEl.textContent = "Camera error: " + e;
+      poseModel.setOptions({
+        modelComplexity: 1,
+        smoothLandmarks: true,
+        enableSegmentation: false,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5,
+      });
+      poseModel.onResults(onPoseResults);
+      await poseModel.initialize();
+      poseReady = true;
     }
-  };
 
-  stopBtn.onclick = () => {
-    if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
-    if (camera) camera.stop();
-    statusEl.textContent = "Camera stopped";
-    stopBtn.disabled = true;
-    startBtn.disabled = false;
-  };
-})();
-</script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = getCurrentUser();
+      if (!user) { window.location.href = '/login.html'; return; }
+
+      document.getElementById('navName').textContent   = user.username;
+      document.getElementById('navAvatar').textContent = user.username.charAt(0).toUpperCase();
+
+      soloMode = localStorage.getItem('fitmonSoloMode') === 'true';
+      if (soloMode) {
+        document.getElementById('navRole').textContent = 'Solo Practice';
+        localStorage.removeItem('fitmonSoloMode');
+      } else {
+        const code = localStorage.getItem('fitmonSessionCode');
+        if (code) {
+          socket.emit('join-session', { code, role: 'patient' });
+        }
+      }
+
+      sessionStartTime = Date.now();
+      setInterval(updateSessionTime, 1000);
+    });
+
+    socket.on('connect', () => {
+      document.getElementById('connStatus').classList.add('online');
+      document.getElementById('connStatus').querySelector('span').textContent = 'Connected';
+      // Re-join session room after reconnect
+      if (!soloMode) {
+        const code = localStorage.getItem('fitmonSessionCode');
+        const user = getCurrentUser();
+        if (code && user) socket.emit('join-session', { code, role: 'patient' });
+      }
+    });
+
+    socket.on('disconnect', () => {
+      document.getElementById('connStatus').classList.remove('online');
+      document.getElementById('connStatus').querySelector('span').textContent = 'Disconnected';
+    });
+
+    socket.on('sensor-data', (data) => {
+      if (data.value !== undefined)
+        document.getElementById('muscleActivation').textContent = Math.round(data.value) + '%';
+      if (data.pulse !== undefined)
+        document.getElementById('heartRate').textContent = Math.round(data.pulse) + ' bpm';
+    });
+
+    function openExerciseModal() {
+      document.getElementById('exerciseModal').classList.add('active');
+    }
+
+    function closeExerciseModal() {
+      document.getElementById('exerciseModal').classList.remove('active');
+    }
+
+    function selectExercise(id, name) {
+      document.querySelectorAll('.exercise-option').forEach(el => el.classList.remove('selected'));
+      document.querySelector('[data-exercise="' + id + '"]').classList.add('selected');
+      currentExercise = { id, name };
+      document.getElementById('activeExName').textContent = name;
+      document.getElementById('activeExBanner').classList.add('active');
+      // Reset counts when exercise changes
+      repCount = 0; isDown = false; lastEmittedReps = -1;
+      formAccuracySum = 0; formAccuracyCount = 0;
+      document.getElementById('repCounter').textContent = '0';
+      document.getElementById('formScore').textContent  = '0%';
+      document.getElementById('formProgress').style.width = '0%';
+    }
+
+    // ─── Camera / Pose pipeline ───────────────────────────────────────────────
+    async function toggleCamera() {
+      const btn   = document.getElementById('toggleCameraBtn');
+      const badge = document.getElementById('liveBadge');
+      const video = document.getElementById('webcam');
+
+      if (!cameraActive) {
+        btn.disabled = true;
+        btn.textContent = 'Starting…';
+        try {
+          await initPose();
+
+          mpCamera = new Camera(video, {
+            onFrame: async () => {
+              if (video.videoWidth > 0) {
+                await poseModel.send({ image: video });
+              }
+            },
+            width: 640,
+            height: 480,
+          });
+          await mpCamera.start();
+
+          cameraActive = true;
+          btn.disabled = false;
+          btn.innerHTML = '<svg class="icon" viewBox="0 0 24 24"><path d="M1 1l22 22" stroke="currentColor" stroke-width="2"/><path d="M21 15V7l-4 3.5V7H8" fill="none" stroke="currentColor" stroke-width="2"/></svg> Stop Camera';
+          badge.classList.add('recording');
+          badge.querySelector('span').textContent = 'LIVE';
+        } catch (err) {
+          btn.disabled = false;
+          btn.innerHTML = '<svg class="icon" viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z" fill="currentColor"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/></svg> Start Camera';
+          console.error('Camera/pose error:', err);
+          alert('Could not start camera: ' + err.message);
+        }
+      } else {
+        if (mpCamera) { mpCamera.stop(); mpCamera = null; }
+        const stream = video.srcObject;
+        if (stream) stream.getTracks().forEach(t => t.stop());
+        video.srcObject = null;
+        cameraActive = false;
+        btn.innerHTML = '<svg class="icon" viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z" fill="currentColor"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/></svg> Start Camera';
+        badge.classList.remove('recording');
+        badge.querySelector('span').textContent = 'CAMERA OFF';
+      }
+    }
+
+    function updateSessionTime() {
+      if (!sessionStartTime) return;
+      const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+      const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
+      const secs = (elapsed % 60).toString().padStart(2, '0');
+      document.getElementById('sessionTime').textContent = mins + ':' + secs;
+    }
+
+    function endSession() {
+      if (confirm('Are you sure you want to end this session?')) {
+        if (cameraActive) toggleCamera();
+        window.location.href = '/home.html';
+      }
+    }
+  </script>
 </body>
 </html>

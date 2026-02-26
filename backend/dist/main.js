@@ -11,7 +11,7 @@ async function bootstrap() {
         credentials: true,
     });
     app.useStaticAssets((0, path_1.join)(__dirname, '..', 'public'), {
-        index: false,
+        index: 'index.html',
         prefix: '/',
     });
     const port = process.env.PORT || 3000;

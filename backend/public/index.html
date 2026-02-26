@@ -1,21 +1,103 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>FitMon – Intelligent Workout Monitoring</title>
+  <title>Kenesis � AI-Powered Remote Fitness Monitoring</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: -1;
+      background: radial-gradient(circle at 30% 20%, rgba(0, 230, 118, 0.06) 0%, transparent 50%),
+                  radial-gradient(circle at 70% 80%, rgba(41, 121, 255, 0.06) 0%, transparent 50%),
+                  #030303;
+    }
+    /* Landing-page specific */
+    .section-label{font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--green-bright);margin-bottom:0.8rem;display:flex;align-items:center;gap:6px;}
+    .section-heading{font-family:"Space Grotesk",sans-serif;font-size:clamp(2rem, 5vw, 3.5rem);font-weight:700;letter-spacing:-0.03em;line-height:1.1;margin-bottom:1.5rem;}
+    .section-para{color:var(--text-muted);font-size:1.1rem;line-height:1.75;max-width:42rem;}
+    .landing-section{padding:6rem 0;}
+    
+    /* Hero floating card */
+    .float-card{
+      background:rgba(12,12,12,0.85);backdrop-filter:blur(24px);border-radius:20px;
+      border:1px solid rgba(255, 255, 255, 0.08);box-shadow:0 20px 60px rgba(0,0,0,0.6);
+      padding:28px;width:100%;max-width:420px;
+      animation:float 6s ease-in-out infinite;
+      position: relative; overflow: hidden;
+    }
+    .float-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--green-bright), transparent);
+      opacity: 0.5;
+    }
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
+
+    /* Stats bar */
+    .stats-bar{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+      background:rgba(5,5,5,0.6);border:1px solid var(--border-subtle);
+      border-radius:var(--radius-xl);overflow:hidden;margin:6rem 0 4rem;
+      backdrop-filter:blur(10px);
+    }
+    .stats-bar-item{padding:2rem;text-align:center;border-right:1px solid var(--border-subtle);}
+    .stats-bar-item:last-child{border-right:none;}
+    .stats-bar-val{font-size:2rem;font-weight:700;color:var(--text-primary);display:block;margin-bottom:4px;font-family:"Space Grotesk",sans-serif;}
+    .stats-bar-lbl{font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;}
+
+    /* Features */
+    .feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:2rem;margin-top:3rem;}
+    .feature-card{
+      background:var(--bg-layer1);border:1px solid var(--border-subtle);
+      border-radius:var(--radius-lg);padding:2rem;transition:all 0.3s ease;
+    }
+    .feature-card:hover{border-color:var(--green-border);transform:translateY(-4px);box-shadow:0 10px 30px -10px rgba(0,0,0,0.5);}
+    .feature-icon{
+      width:48px;height:48px;background:var(--bg-layer2);border:1px solid var(--border-subtle);
+      border-radius:12px;display:flex;align-items:center;justify-content:center;
+      color:var(--green);margin-bottom:1.5rem;transition:all 0.3s ease;
+    }
+    .feature-card:hover .feature-icon{background:var(--green);color:#000;border-color:var(--green);}
+    .feature-title{font-size:1.25rem;font-weight:600;margin-bottom:0.75rem;color:var(--text-primary);}
+    .feature-desc{font-size:0.95rem;color:var(--text-muted);line-height:1.6;}
+
+    /* Hero Layout */
+    .hero-layout{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center;}
+    @media(max-width:960px){.hero-layout{grid-template-columns:1fr;text-align:center;}.float-card{margin:0 auto;}.hero-cta{justify-content:center;}}
+    .hero-cta{display:flex;gap:1rem;margin-top:2rem;}
+    
+    .hero-stat-row{display:flex;gap:2rem;margin-top:3rem;border-top:1px solid var(--border-subtle);padding-top:2rem;}
+    @media(max-width:960px){.hero-stat-row{justify-content:center;}}
+    .hs-item{display:flex;flex-direction:column;gap:4px;}
+    .hs-val{font-weight:700;color:var(--text-primary);}
+    .hs-lbl{font-size:0.8rem;color:var(--text-muted);}
+
+    /* CTA Section */
+    .cta-box{
+      background:linear-gradient(135deg,rgba(10,10,10,0.8),rgba(0,0,0,0.9));
+      border:1px solid var(--border-subtle);border-radius:24px;
+      padding:4rem 2rem;text-align:center;position:relative;overflow:hidden;
+    }
+    .cta-box::before{
+      content:"";position:absolute;top:0;left:0;right:0;height:1px;
+      background:linear-gradient(90deg,transparent,var(--green),transparent);
+      opacity:0.5;
+    }
+  </style>
 </head>
 <body data-page="landing">
   <header class="navbar">
     <div class="navbar-inner">
       <a href="/index.html" class="brand">
         <div class="brand-pill"></div>
-        <span>FitMon</span>
+        <span>Kenesis</span>
       </a>
       <nav class="nav-links">
-        <a href="/login.html">Login</a>
-        <a href="/signup.html" class="btn-primary btn-sm" style="border-radius:999px;">Get started</a>
+        <a href="#features">Features</a>
+        <a href="#how">How It Works</a>
+        <a href="/login.html" class="btn-ghost" style="padding: 0.65rem 1.25rem; border-radius: 10px;">Sign In</a>
+        <a href="/signup.html" class="btn-primary btn-sm" style="padding: 0.65rem 1.5rem;">Get Started</a>
       </nav>
     </div>
   </header>
@@ -23,74 +105,134 @@
   <main class="page">
     <div class="page-inner">
 
-      <!-- Hero -->
-      <section class="hero">
-        <div>
-          <div class="hero-eyebrow">&#9889; AI-Powered Physiotherapy Platform</div>
-          <h1 class="hero-title">
-            Train smarter.<br />
-            Recover <span class="hero-highlight">faster.</span>
-          </h1>
-          <p class="hero-subtitle">
-            FitMon streams your workouts in real-time so your doctor and coach can
-            see posture, FSR and pulse metrics, and track progress — all in one place.
-          </p>
-          <div class="hero-cta">
-            <a href="/signup.html" class="btn-primary btn-lg">Start for free</a>
-            <a href="/login.html" class="btn-ghost btn-lg">Sign in</a>
+      <!-- HERO -->
+      <section class="landing-section hero" style="padding-top:4rem;">
+        <div class="hero-layout">
+          <div>
+            <div class="section-label">
+              <svg class="icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+              AI + IoT + Computer Vision Platform
+            </div>
+            <h1 class="section-heading">
+              <span class="gradient-text-green">Remote fitness</span><br />
+              monitoring aligned.
+            </h1>
+            <p class="section-para">
+              Kenesis connects coaches and athletes in real-time sessions.
+              Analyze pose, reps, FSR and heart rate with medical-grade precision.
+            </p>
+            <div class="hero-cta">
+              <a href="/signup.html" class="btn-primary btn-lg">Start Free Trial</a>
+              <a href="/login.html" class="btn-ghost btn-lg">
+                <svg class="icon" viewBox="0 0 24 24" style="margin-right:8px"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                Watch Demo
+              </a>
+            </div>
+            <div class="hero-stat-row">
+              <div class="hs-item"><span class="hs-val">Real-time</span><span class="hs-lbl">CV Analysis</span></div>
+              <div class="hs-item"><span class="hs-val">IoT</span><span class="hs-lbl">Sensor Sync</span></div>
+              <div class="hs-item"><span class="hs-val">AI</span><span class="hs-lbl">Reports</span></div>
+              <div class="hs-item"><span class="hs-val">Secure</span><span class="hs-lbl">E2E Encrypted</span></div>
+            </div>
           </div>
-          <div class="hero-stats">
-            <div class="hero-stat"><span>Real-time</span><span>CV analysis</span></div>
-            <div class="hero-stat"><span>IoT</span><span>FSR &amp; pulse</span></div>
-            <div class="hero-stat"><span>AI</span><span>session reports</span></div>
-          </div>
-        </div>
 
-        <div class="hero-visual">
-          <div class="card glow">
-            <div class="section-title" style="display:flex;align-items:center;gap:0.6rem;">
-              <span class="dot dot-green"></span> Live Session
-            </div>
-            <p class="section-subtitle">Camera feed with pose tracking + real-time metrics</p>
-            <div class="video-placeholder" style="height:160px;">
-              &#127916; Patient camera stream
-            </div>
-            <div class="stat-band" style="margin-top:1rem;margin-bottom:0;">
-              <div class="stat-band-item"><div class="val">24</div><div class="lbl">Reps</div></div>
-              <div class="stat-band-item"><div class="val">87%</div><div class="lbl">Form</div></div>
-              <div class="stat-band-item"><div class="val">72</div><div class="lbl">BPM</div></div>
+          <div style="display:flex;justify-content:center;">
+            <div class="float-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;border-bottom:1px solid var(--border-subtle);padding-bottom:1rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                  <span class="dot dot-green"></span>
+                  <span style="font-size:0.85rem;font-weight:600;color:var(--text-primary);letter-spacing:0.02em;">SESSION-4K92Z</span>
+                </div>
+                <span class="badge badge-green">LIVE</span>
+              </div>
+              
+              <div style="height:180px;background:var(--bg-layer2);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;flex-direction:column;color:var(--text-muted);border:1px dashed var(--border-subtle);margin-bottom:1.5rem;">
+                <svg class="icon-xl" viewBox="0 0 24 24" style="margin-bottom:1rem;opacity:0.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                <span style="font-size:0.8rem;">Camera Feed & Skeleton Overlay</span>
+              </div>
+
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                <div style="padding:12px;background:var(--bg-layer1);border:1px solid var(--border-subtle);border-radius:8px;text-align:center;">
+                  <div style="font-size:1.5rem;font-weight:700;color:var(--green);font-family:'Space Grotesk'">24</div>
+                  <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Reps</div>
+                </div>
+                <div style="padding:12px;background:var(--bg-layer1);border:1px solid var(--border-subtle);border-radius:8px;text-align:center;">
+                  <div style="font-size:1.5rem;font-weight:700;color:var(--blue);font-family:'Space Grotesk'">87%</div>
+                  <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Form</div>
+                </div>
+                <div style="padding:12px;background:var(--bg-layer1);border:1px solid var(--border-subtle);border-radius:8px;text-align:center;">
+                  <div style="font-size:1.5rem;font-weight:700;color:var(--danger);font-family:'Space Grotesk'">142</div>
+                  <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">BPM</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Features -->
-      <div class="feature-grid">
-        <div class="feature-card">
-          <div class="feature-icon">&#128104;&#8205;&#9877;&#65039;</div>
-          <div class="feature-title">Doctor Dashboard</div>
-          <p class="feature-desc">Live FSR charts, pulse monitoring, CV pose accuracy, and one-click AI report generation.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">&#127939;</div>
-          <div class="feature-title">Personalized Workouts</div>
-          <p class="feature-desc">YouTube workout feed that adapts to your progress score, fitness level, and goals.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">&#128200;</div>
-          <div class="feature-title">Progress Tracking</div>
-          <p class="feature-desc">Session histories, accuracy trends, and goal milestones saved and visualized over time.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">&#128279;</div>
-          <div class="feature-title">Meeting Codes</div>
-          <p class="feature-desc">Doctor generates a 6-character code. Patient enters it to instantly connect to the live session.</p>
-        </div>
+      <!-- STATS BAR -->
+      <div class="stats-bar">
+        <div class="stats-bar-item"><span class="stats-bar-val text-green">6</span><span class="stats-bar-lbl">Exercises</span></div>
+        <div class="stats-bar-item"><span class="stats-bar-val text-blue">33</span><span class="stats-bar-lbl">Landmarks</span></div>
+        <div class="stats-bar-item"><span class="stats-bar-val">AI</span><span class="stats-bar-lbl">Analysis</span></div>
+        <div class="stats-bar-item"><span class="stats-bar-val">20ms</span><span class="stats-bar-lbl">Latency</span></div>
       </div>
+
+      <!-- FEATURES -->
+      <section class="landing-section" id="features">
+        <div style="text-align:center;max-width:700px;margin:0 auto;">
+          <div class="section-label" style="justify-content:center">
+            <svg class="icon" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+            Platform Capabilities
+          </div>
+          <h2 class="section-heading">Everything you need to monitor performance remotely</h2>
+        </div>
+        
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg class="icon-lg" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </div>
+            <h3 class="feature-title">Computer Vision</h3>
+            <p class="feature-desc">Real-time skeleton tracking and angle analysis for 6 major exercises. No calibration needed.</p>
+          </div>
+          
+          <div class="feature-card">
+            <div class="feature-icon" style="color:var(--blue)">
+              <svg class="icon-lg" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+            </div>
+            <h3 class="feature-title">IoT Sensors</h3>
+            <p class="feature-desc">Sync with ESP32 wristbands for real-time Heart Rate (Pulse) and muscle activation (FSR) data.</p>
+          </div>
+          
+          <div class="feature-card">
+            <div class="feature-icon" style="color:var(--purple)">
+              <svg class="icon-lg" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"></path><path d="M12 6v6l4 2"></path></svg>
+            </div>
+            <h3 class="feature-title">Instant Sessions</h3>
+            <p class="feature-desc">Zero setup. Generate a 6-character code and invite your athlete instantly.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon" style="color:var(--cyan)">
+              <svg class="icon-lg" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            </div>
+            <h3 class="feature-title">AI Performance Reports</h3>
+            <p class="feature-desc">Automated summaries after every session highlighting form improvements and key metrics.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="landing-section">
+        <div class="cta-box">
+          <h2 class="section-heading" style="margin-bottom:1rem">Ready to modernize your coaching?</h2>
+          <p class="section-para" style="margin:0 auto 2.5rem;max-width:600px;">Join Kenesis today and give your athletes the professional remote monitoring experience they deserve.</p>
+          <a href="/signup.html" class="btn-primary btn-lg">Get Started Free</a>
+        </div>
+      </section>
 
     </div>
   </main>
-
-  <script src="/app.js"></script>
 </body>
 </html>

@@ -15,7 +15,7 @@ async function bootstrap() {
 
   // Serve static files from public directory
   app.useStaticAssets(join(__dirname, '..', 'public'), {
-    index: false,
+    index: 'index.html',
     prefix: '/',
   });
 
