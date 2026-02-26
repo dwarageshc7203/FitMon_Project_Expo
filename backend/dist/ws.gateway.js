@@ -14,15 +14,37 @@ const websockets_1 = require("@nestjs/websockets");
 const socket_io_1 = require("socket.io");
 let WsGateway = class WsGateway {
     constructor() {
-        this.doctorClients = new Set();
+        this.clientRoom = new Map();
     }
     handleConnection(client) {
-        console.log(`🔌 Client connected: ${client.id}`);
-        this.doctorClients.add(client);
+        console.log(`🔌 Connected: ${client.id}`);
     }
     handleDisconnect(client) {
-        console.log(`🔌 Client disconnected: ${client.id}`);
-        this.doctorClients.delete(client);
+        const room = this.clientRoom.get(client.id);
+        if (room) {
+            client.to(room).emit('peer-left', { timestamp: Date.now() });
+            this.clientRoom.delete(client.id);
+            console.log(`🔌 ${client.id} left room ${room}`);
+        }
+        console.log(`🔌 Disconnected: ${client.id}`);
+    }
+    handleJoinSession(client, payload) {
+        const room = `session-${(payload.code || '').toUpperCase()}`;
+        client.join(room);
+        this.clientRoom.set(client.id, room);
+        client.to(room).emit('peer-joined', {
+            role: payload.role,
+            timestamp: Date.now(),
+        });
+        console.log(`📡 ${payload.role} ${client.id} joined room ${room}`);
+        return { success: true, room };
+    }
+    handleLeaveSession(client, payload) {
+        const room = `session-${(payload.code || '').toUpperCase()}`;
+        client.leave(room);
+        this.clientRoom.delete(client.id);
+        client.to(room).emit('peer-left', { timestamp: Date.now() });
+        return { success: true };
     }
     handleCVUpdate(client, payload) {
         const data = {
@@ -30,20 +52,35 @@ let WsGateway = class WsGateway {
             formAccuracy: payload.formAccuracy ?? 0,
             timestamp: payload.timestamp ?? Date.now(),
         };
-        console.log(`🎥 Received CV update from client ${client.id}: ${data.reps} reps, ${data.formAccuracy}% accuracy`);
-        this.server.emit('cv-update', data);
+        const room = this.clientRoom.get(client.id);
+        if (room) {
+            client.to(room).emit('cv-update', data);
+        }
+        else {
+            this.server.emit('cv-update', data);
+        }
+        console.log(`🎥 cv-update from ${client.id} → room ${room ?? 'broadcast'}`);
         return { success: true };
     }
-    broadcastSensorData(data) {
-        this.server.emit('sensor-data', data);
-        console.log(`📊 Broadcasting sensor data: ${data.value}`);
+    broadcastSensorData(data, code) {
+        if (code) {
+            this.server.to(`session-${code.toUpperCase()}`).emit('sensor-data', data);
+        }
+        else {
+            this.server.emit('sensor-data', data);
+        }
+        console.log(`📊 sensor-data → ${code ? `session-${code}` : 'broadcast'}: ${data.value}`);
     }
-    broadcastCVData(data) {
-        this.server.emit('cv-update', data);
-        console.log(`🎥 Broadcasting CV update: ${data.reps} reps, ${data.formAccuracy}% accuracy`);
+    broadcastCVData(data, code) {
+        if (code) {
+            this.server.to(`session-${code.toUpperCase()}`).emit('cv-update', data);
+        }
+        else {
+            this.server.emit('cv-update', data);
+        }
     }
     getConnectedClientsCount() {
-        return this.doctorClients.size;
+        return this.clientRoom.size;
     }
 };
 exports.WsGateway = WsGateway;
@@ -52,6 +89,18 @@ __decorate([
     __metadata("design:type", socket_io_1.Server)
 ], WsGateway.prototype, "server", void 0);
 __decorate([
+    (0, websockets_1.SubscribeMessage)('join-session'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
+    __metadata("design:returntype", void 0)
+], WsGateway.prototype, "handleJoinSession", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)('leave-session'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
+    __metadata("design:returntype", void 0)
+], WsGateway.prototype, "handleLeaveSession", null);
+__decorate([
     (0, websockets_1.SubscribeMessage)('cv-update'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
@@ -59,10 +108,7 @@ __decorate([
 ], WsGateway.prototype, "handleCVUpdate", null);
 exports.WsGateway = WsGateway = __decorate([
     (0, websockets_1.WebSocketGateway)({
-        cors: {
-            origin: '*',
-            credentials: true,
-        },
+        cors: { origin: '*', credentials: true },
         transports: ['websocket', 'polling'],
         allowEIO3: true,
     })

@@ -62,6 +62,27 @@ let AuthController = class AuthController {
             },
         };
     }
+    async getProfile(id) {
+        const user = await this.userRepo.findOne({ where: { id } });
+        if (!user)
+            throw new common_1.NotFoundException('User not found');
+        const { passwordHash: _, ...safe } = user;
+        return { success: true, user: safe };
+    }
+    async updateProfile(id, body) {
+        const user = await this.userRepo.findOne({ where: { id } });
+        if (!user)
+            throw new common_1.NotFoundException('User not found');
+        const allowed = ['name', 'age', 'email', 'heightCm', 'weightKg', 'bmi', 'goals', 'cause'];
+        for (const key of allowed) {
+            if (body[key] !== undefined) {
+                user[key] = body[key];
+            }
+        }
+        const saved = await this.userRepo.save(user);
+        const { passwordHash: _, ...safe } = saved;
+        return { success: true, user: safe };
+    }
 };
 exports.AuthController = AuthController;
 __decorate([
@@ -78,6 +99,21 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
+__decorate([
+    (0, common_1.Get)('profile/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "getProfile", null);
+__decorate([
+    (0, common_1.Put)('profile/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "updateProfile", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
     __param(0, (0, typeorm_1.InjectRepository)(user_entity_1.User)),

@@ -33,5 +33,13 @@ export declare class AuthController {
             role: UserRole;
         };
     }>;
+    getProfile(id: string): Promise<{
+        success: boolean;
+        user: any;
+    }>;
+    updateProfile(id: string, body: Partial<User>): Promise<{
+        success: boolean;
+        user: any;
+    }>;
 }
 export {};

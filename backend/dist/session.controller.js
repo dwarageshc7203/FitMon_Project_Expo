@@ -199,6 +199,24 @@ let SessionController = SessionController_1 = class SessionController {
             throw new common_1.BadRequestException('pulse_rate must be a number between 30 and 220');
         }
     }
+    async getHistory(userId) {
+        const [asDr, asPat] = await Promise.all([
+            this.sessionRepo.find({
+                where: { doctor: { id: userId } },
+                order: { createdAt: 'DESC' },
+                take: 10,
+            }),
+            this.sessionRepo.find({
+                where: { patient: { id: userId } },
+                order: { createdAt: 'DESC' },
+                take: 10,
+            }),
+        ]);
+        const all = [...asDr, ...asPat]
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, 20);
+        return { success: true, sessions: all };
+    }
 };
 exports.SessionController = SessionController;
 __decorate([
@@ -222,6 +240,13 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], SessionController.prototype, "generateReport", null);
+__decorate([
+    (0, common_1.Get)('history/:userId'),
+    __param(0, (0, common_1.Param)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], SessionController.prototype, "getHistory", null);
 exports.SessionController = SessionController = SessionController_1 = __decorate([
     (0, common_1.Controller)('session'),
     __param(1, (0, typeorm_1.InjectRepository)(session_entity_1.Session)),

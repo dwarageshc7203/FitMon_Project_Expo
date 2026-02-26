@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -15,60 +15,82 @@
       </a>
       <nav class="nav-links">
         <a href="/login.html">Login</a>
-        <a href="/signup.html">Sign up</a>
+        <a href="/signup.html" class="btn-primary btn-sm" style="border-radius:999px;">Get started</a>
       </nav>
     </div>
   </header>
 
   <main class="page">
     <div class="page-inner">
+
+      <!-- Hero -->
       <section class="hero">
         <div>
+          <div class="hero-eyebrow">&#9889; AI-Powered Physiotherapy Platform</div>
           <h1 class="hero-title">
-            Track your <span class="hero-highlight">form</span><br />
-            like a personal coach.
+            Train smarter.<br />
+            Recover <span class="hero-highlight">faster.</span>
           </h1>
           <p class="hero-subtitle">
-            FitMon streams your workouts in real‑time so your doctor and coach can
-            see posture, FsR and pulse metrics, and progress in one place.
+            FitMon streams your workouts in real-time so your doctor and coach can
+            see posture, FSR and pulse metrics, and track progress — all in one place.
           </p>
           <div class="hero-cta">
-            <a href="/signup.html" class="btn-primary">Get started</a>
-            <a href="/login.html" class="btn-ghost">I already have an account</a>
+            <a href="/signup.html" class="btn-primary btn-lg">Start for free</a>
+            <a href="/login.html" class="btn-ghost btn-lg">Sign in</a>
           </div>
-
-          <div class="card-grid">
-            <div class="card">
-              <div class="section-title">For Doctors</div>
-              <p class="section-subtitle">
-                Live dashboard with form insights, FsR and pulse trends, and quick
-                session reports.
-              </p>
-            </div>
-            <div class="card">
-              <div class="section-title">For Fitness Enthusiasts</div>
-              <p class="section-subtitle">
-                See curated workout videos that evolve as your progress improves.
-              </p>
-            </div>
+          <div class="hero-stats">
+            <div class="hero-stat"><span>Real-time</span><span>CV analysis</span></div>
+            <div class="hero-stat"><span>IoT</span><span>FSR &amp; pulse</span></div>
+            <div class="hero-stat"><span>AI</span><span>session reports</span></div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="section-title">Live Workout Snapshot</div>
-          <p class="section-subtitle">
-            This mock card will later be replaced with the existing streaming
-            dashboard once wired.
-          </p>
-          <div class="video-placeholder">
-            Prototype preview of camera &amp; metrics
+        <div class="hero-visual">
+          <div class="card glow">
+            <div class="section-title" style="display:flex;align-items:center;gap:0.6rem;">
+              <span class="dot dot-green"></span> Live Session
+            </div>
+            <p class="section-subtitle">Camera feed with pose tracking + real-time metrics</p>
+            <div class="video-placeholder" style="height:160px;">
+              &#127916; Patient camera stream
+            </div>
+            <div class="stat-band" style="margin-top:1rem;margin-bottom:0;">
+              <div class="stat-band-item"><div class="val">24</div><div class="lbl">Reps</div></div>
+              <div class="stat-band-item"><div class="val">87%</div><div class="lbl">Form</div></div>
+              <div class="stat-band-item"><div class="val">72</div><div class="lbl">BPM</div></div>
+            </div>
           </div>
         </div>
       </section>
+
+      <!-- Features -->
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">&#128104;&#8205;&#9877;&#65039;</div>
+          <div class="feature-title">Doctor Dashboard</div>
+          <p class="feature-desc">Live FSR charts, pulse monitoring, CV pose accuracy, and one-click AI report generation.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#127939;</div>
+          <div class="feature-title">Personalized Workouts</div>
+          <p class="feature-desc">YouTube workout feed that adapts to your progress score, fitness level, and goals.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#128200;</div>
+          <div class="feature-title">Progress Tracking</div>
+          <p class="feature-desc">Session histories, accuracy trends, and goal milestones saved and visualized over time.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#128279;</div>
+          <div class="feature-title">Meeting Codes</div>
+          <p class="feature-desc">Doctor generates a 6-character code. Patient enters it to instantly connect to the live session.</p>
+        </div>
+      </div>
+
     </div>
   </main>
 
   <script src="/app.js"></script>
 </body>
 </html>
-

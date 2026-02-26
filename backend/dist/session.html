@@ -1,18 +1,34 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>FitMon – Session</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="/styles.css" />
+  <style>
+    .session-gate { max-width: 600px; margin: 0 auto; }
+    .step { display:flex; align-items:flex-start; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .step:last-child { border-bottom: none; }
+    .step-num { min-width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); border: 1px solid rgba(34,197,94,0.3); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; color: var(--accent); flex-shrink: 0; margin-top: 0.15rem; }
+    .step-body { flex: 1; }
+    .step-body h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.35rem; }
+    .waiting-dots::after { content: '…'; animation: dots 1.5s steps(4) infinite; }
+    @keyframes dots { 0%,20%{content:'.'} 40%{content:'..'} 60%,100%{content:'…'} }
+    .tab-bar { display:flex; gap:0.4rem; margin-bottom:1.5rem; }
+    .tab-btn {
+      flex: 1; padding: 0.7rem 1rem; border-radius: var(--radius-md);
+      border: 1px solid var(--border-dim); background: rgba(15,23,42,0.6);
+      color: var(--text-muted); font-size: 0.875rem; font-weight:600; cursor:pointer; transition:var(--transition);
+    }
+    .tab-btn.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+  </style>
 </head>
 <body data-page="session">
   <header class="navbar">
     <div class="navbar-inner">
-      <a href="/home.html" class="brand">
-        <div class="brand-pill"></div>
-        <span>FitMon</span>
-      </a>
+      <a href="/home.html" class="brand"><div class="brand-pill"></div><span>FitMon</span></a>
       <nav class="nav-links">
         <a href="/home.html">Home</a>
         <a href="/profile.html">Profile</a>
@@ -25,74 +41,250 @@
 
   <main class="page">
     <div class="page-inner">
-      <h1 class="section-title">Session / Meeting</h1>
-      <p class="section-subtitle">
-        Prototype: a doctor generates a session code, and a fitness enthusiast joins using that code.
-        Once connected, both can open the streaming dashboards.
-      </p>
 
-      <div class="session-layout">
-        <div class="card">
-          <div id="doctorControls">
-            <p class="session-tag">Doctor controls</p>
-            <p class="muted">
-              Generate a temporary session code and share it with your patient.
-            </p>
-            <div style="margin-top: 1rem;">
-              <button class="btn-primary" id="generateCodeBtn" type="button">
-                Generate session code
-              </button>
+      <div class="session-gate">
+        <h1 class="page-heading" style="margin-bottom:0.35rem;">Live Session</h1>
+        <p class="section-subtitle">Connect doctor and patient in a monitored workout session.</p>
+
+        <!-- Role-based tab bar (hidden if role is already known) -->
+        <div class="tab-bar" id="tabBar">
+          <button class="tab-btn" id="tabDoctor" data-tab="doctor">&#128104;&#8205;&#9877;&#65039; I'm a Doctor</button>
+          <button class="tab-btn" id="tabPatient" data-tab="patient">&#127939; I'm a Patient</button>
+        </div>
+
+        <!-- DOCTOR panel -->
+        <div class="tab-panel" id="panelDoctor">
+          <div class="card">
+            <div class="section-title" style="margin-bottom:0.4rem;">Doctor – Session Setup</div>
+            <p class="section-subtitle">Generate a code, share it with your patient, then start the live dashboard.</p>
+
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <h3>Generate a session code</h3>
+                <p class="muted">A unique 6-character code is created on the server and linked to your account.</p>
+                <button class="btn-primary btn-sm" id="generateCodeBtn" style="margin-top:0.75rem;">
+                  Generate session code
+                </button>
+              </div>
             </div>
-            <div style="margin-top: 1rem;">
-              <span class="session-tag">Current code</span><br />
-              <span class="session-code">
-                <span id="sessionCodeDisplay">———</span>
-                <span class="chip">
-                  <span class="status-dot"></span>
-                  prototype only
-                </span>
-              </span>
+
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <h3>Share the code with your patient</h3>
+                <div style="margin-top:0.5rem;">
+                  <div class="session-tag">Session code</div>
+                  <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-top:0.3rem;">
+                    <div class="session-code" id="sessionCodeDisplay">——————</div>
+                    <button class="btn-icon" id="copyCodeBtn" style="display:none;" title="Copy code">
+                      &#128203; Copy
+                    </button>
+                  </div>
+                  <p class="faint" style="margin-top:0.5rem;">Your patient enters this code on their Session page to join.</p>
+                </div>
+              </div>
             </div>
-            <p class="muted" style="margin-top: 1.2rem;">
-              After code is shared, you can open the existing doctor dashboard
-              once the patient joins.
-            </p>
+
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <h3>Open your live dashboard</h3>
+                <p class="muted">Once you are ready, validate the code and open your monitoring dashboard.</p>
+                <button class="btn-primary btn-sm" id="startSessionBtn" style="display:none;margin-top:0.75rem;background:var(--accent-dim);">
+                  &#9654;&#65038; Start Session
+                </button>
+              </div>
+            </div>
           </div>
+        </div>
 
-          <div id="patientControls">
-            <p class="session-tag">Patient controls</p>
-            <p class="muted">
-              Enter the session code provided by your doctor to join the live workout analysis.
-            </p>
-            <div class="form-field" style="margin-top: 1rem;">
+        <!-- PATIENT panel -->
+        <div class="tab-panel" id="panelPatient">
+          <div class="card">
+            <div class="section-title" style="margin-bottom:0.4rem;">Patient – Join Session</div>
+            <p class="section-subtitle">Enter the 6-character code provided by your doctor to connect to the live session.</p>
+
+            <div id="joinError" class="alert-banner error" style="display:none;margin-bottom:1rem;"></div>
+
+            <div class="form-field">
               <label for="joinCodeInput">Session code</label>
-              <input id="joinCodeInput" type="text" placeholder="e.g. 4K92ZT" />
+              <input id="joinCodeInput" type="text" placeholder="e.g. 4K92ZT" maxlength="6"
+                     style="text-transform:uppercase;letter-spacing:0.15em;font-size:1.1rem;font-weight:700;" />
             </div>
-            <button class="btn-primary" id="joinSessionBtn" type="button">
-              Join session
-            </button>
-            <p class="muted" style="margin-top: 1rem;">
-              In this prototype, a successful join will open the existing patient or doctor
-              dashboards (<code>patient.html</code> / <code>doctor.html</code>).
-            </p>
+            <button class="btn-primary" id="joinSessionBtn">Join session &rarr;</button>
+            <p class="faint" style="margin-top:0.75rem;">After validation you will be redirected to your live workout view.</p>
           </div>
         </div>
 
-        <div class="card">
-          <div class="section-title">Live dashboard preview</div>
-          <p class="section-subtitle">
-            This panel represents the combined view: the patient streams video with CV analysis,
-            and the doctor sees FsR / pulse sensor feeds plus report generation.
-          </p>
-          <div class="video-placeholder">
-            Existing doctor &amp; patient dashboards will be visually embedded here later.
-          </div>
-        </div>
       </div>
+
     </div>
   </main>
 
+  <div class="toast-container" id="toastContainer"></div>
   <script src="/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var rawUser = null;
+      try { rawUser = localStorage.getItem('fitmonCurrentUser'); } catch (e) {}
+      if (!rawUser) { window.location.href = '/login.html'; return; }
+      var user;
+      try { user = JSON.parse(rawUser); } catch (e) { window.location.href = '/login.html'; return; }
+
+      var tabBar = document.getElementById('tabBar');
+      var tabDoctor = document.getElementById('tabDoctor');
+      var tabPatient = document.getElementById('tabPatient');
+      var panelDoctor = document.getElementById('panelDoctor');
+      var panelPatient = document.getElementById('panelPatient');
+
+      function showTab(role) {
+        if (role === 'doctor') {
+          tabDoctor.classList.add('active'); tabPatient.classList.remove('active');
+          panelDoctor.classList.add('active'); panelPatient.classList.remove('active');
+        } else {
+          tabPatient.classList.add('active'); tabDoctor.classList.remove('active');
+          panelPatient.classList.add('active'); panelDoctor.classList.remove('active');
+        }
+      }
+
+      // Auto-switch to role tab and hide the tab bar
+      if (user.role === 'doctor') {
+        showTab('doctor');
+        if (tabBar) tabBar.style.display = 'none';
+      } else {
+        showTab('patient');
+        if (tabBar) tabBar.style.display = 'none';
+      }
+
+      // Tab click handlers (in case tab bar is visible)
+      tabDoctor.addEventListener('click', function () { showTab('doctor'); });
+      tabPatient.addEventListener('click', function () { showTab('patient'); });
+
+      // ── DOCTOR: Generate code ─────────────────────────────────────────────
+      var generateCodeBtn  = document.getElementById('generateCodeBtn');
+      var startSessionBtn  = document.getElementById('startSessionBtn');
+      var sessionCodeDisplay = document.getElementById('sessionCodeDisplay');
+      var copyCodeBtn      = document.getElementById('copyCodeBtn');
+
+      if (generateCodeBtn) {
+        generateCodeBtn.addEventListener('click', function () {
+          generateCodeBtn.textContent = 'Generating…';
+          generateCodeBtn.disabled = true;
+
+          fetch('/session/create-meeting', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ doctorId: user.id }),
+          })
+          .then(function (res) {
+            if (!res.ok) return res.json().then(function(e){ throw new Error(e.message || 'Server error'); });
+            return res.json();
+          })
+          .then(function (data) {
+            if (data.success && data.code) {
+              sessionCodeDisplay.textContent = data.code;
+              localStorage.setItem('fitmonSessionCode', data.code);
+              if (data.sessionId) localStorage.setItem('fitmonSessionId', data.sessionId);
+
+              if (copyCodeBtn) copyCodeBtn.style.display = '';
+              if (startSessionBtn) {
+                startSessionBtn.style.display = '';
+                startSessionBtn.style.background = '';
+              }
+              generateCodeBtn.textContent = '↻ Regenerate code';
+              generateCodeBtn.disabled = false;
+            }
+          })
+          .catch(function (err) {
+            generateCodeBtn.textContent = 'Generate session code';
+            generateCodeBtn.disabled = false;
+            alert('Could not generate code: ' + err.message);
+          });
+        });
+      }
+
+      // If a code was already generated this session, show it
+      var existingCode = localStorage.getItem('fitmonSessionCode');
+      if (existingCode && user.role === 'doctor') {
+        sessionCodeDisplay.textContent = existingCode;
+        if (copyCodeBtn) copyCodeBtn.style.display = '';
+        if (startSessionBtn) { startSessionBtn.style.display = ''; startSessionBtn.style.background = ''; }
+      }
+
+      // ── DOCTOR: Start session → go to doctor dashboard ───────────────────
+      if (startSessionBtn) {
+        startSessionBtn.addEventListener('click', function () {
+          var code = localStorage.getItem('fitmonSessionCode');
+          if (!code) { alert('Generate a session code first.'); return; }
+          window.location.href = '/doctor.html';
+        });
+      }
+
+      // ── PATIENT: Join session ─────────────────────────────────────────────
+      var joinSessionBtn = document.getElementById('joinSessionBtn');
+      var joinCodeInput  = document.getElementById('joinCodeInput');
+      var joinError      = document.getElementById('joinError');
+
+      if (joinSessionBtn) {
+        joinSessionBtn.addEventListener('click', function () {
+          var code = joinCodeInput ? joinCodeInput.value.trim().toUpperCase() : '';
+          if (!code || code.length < 4) {
+            if (joinError) { joinError.textContent = 'Please enter a valid session code.'; joinError.style.display = ''; }
+            return;
+          }
+          joinSessionBtn.textContent = 'Validating…';
+          joinSessionBtn.disabled = true;
+          if (joinError) joinError.style.display = 'none';
+
+          fetch('/session/join-meeting', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: code, patientId: user.id }),
+          })
+          .then(function (res) {
+            if (!res.ok) return res.json().then(function(e){ throw new Error(e.message || 'Invalid code'); });
+            return res.json();
+          })
+          .then(function (data) {
+            if (data.success) {
+              localStorage.setItem('fitmonSessionCode', data.code || code);
+              if (data.sessionId) localStorage.setItem('fitmonSessionId', data.sessionId);
+              window.location.href = '/patient.html';
+            } else {
+              throw new Error(data.message || 'Could not join session');
+            }
+          })
+          .catch(function (err) {
+            if (joinError) { joinError.textContent = err.message; joinError.style.display = ''; }
+            joinSessionBtn.textContent = 'Join session →';
+            joinSessionBtn.disabled = false;
+          });
+        });
+      }
+
+      // Allow Enter key in code input
+      if (joinCodeInput) {
+        joinCodeInput.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') joinSessionBtn && joinSessionBtn.click();
+        });
+      }
+
+      // Copy code button
+      var copyBtn = document.getElementById('copyCodeBtn');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', function () {
+          var codeEl = document.getElementById('sessionCodeDisplay');
+          var code = codeEl ? codeEl.textContent.trim() : '';
+          if (code && code !== '——————') {
+            navigator.clipboard.writeText(code).then(function () {
+              copyBtn.textContent = '✓ Copied!';
+              setTimeout(function () { copyBtn.innerHTML = '&#128203; Copy'; }, 2000);
+            });
+          }
+        });
+      }
+    });
+  </script>
 </body>
 </html>
-

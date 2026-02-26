@@ -1,18 +1,29 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>FitMon – Profile</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="/styles.css" />
+  <style>
+    .edit-toggle { display:none; }
+    .edit-mode .edit-toggle { display:flex; }
+    .edit-mode .view-val { display:none; }
+    .view-val { font-size:0.9rem; color:var(--text-soft); }
+    .profile-section { margin-bottom: 1.75rem; }
+    .field-row { display:flex; justify-content:space-between; align-items:center; padding:0.55rem 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+    .field-row:last-child { border-bottom:none; }
+    .field-label { font-size:0.78rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-faint); font-weight:600; }
+    .field-value { font-size:0.9rem; color:var(--text-soft); }
+    .field-value.accent { color:var(--accent); font-weight:600; }
+    .editable-input { background:rgba(15,23,42,0.9); border:1px solid var(--accent); border-radius:var(--radius-sm); padding:0.35rem 0.6rem; color:var(--text-main); font-size:0.875rem; width:160px; }
+    .editable-input:focus { outline:none; box-shadow:0 0 0 2px var(--accent-soft); }
+  </style>
 </head>
 <body data-page="profile">
   <header class="navbar">
     <div class="navbar-inner">
-      <a href="/home.html" class="brand">
-        <div class="brand-pill"></div>
-        <span>FitMon</span>
-      </a>
+      <a href="/home.html" class="brand"><div class="brand-pill"></div><span>FitMon</span></a>
       <nav class="nav-links">
         <a href="/home.html">Home</a>
         <a href="/profile.html" class="active">Profile</a>
@@ -25,60 +36,115 @@
 
   <main class="page">
     <div class="page-inner">
-      <h1 class="section-title">Profile</h1>
-      <p class="section-subtitle">
-        This prototype shows static health stats. Later these will be loaded from the database.
-      </p>
 
-      <div class="section-grid">
-        <div class="card">
-          <div class="section-title">Basics</div>
-          <p><strong>Name:</strong> <span data-user-name>user</span></p>
-          <p><strong>Role:</strong> <span data-user-role>Fitness enthusiast</span></p>
-          <p><strong>Age:</strong> 25 (example)</p>
-        </div>
-
-        <div class="card">
-          <div class="section-title">Health stats</div>
-          <div class="stat-row">
-            <span>Height</span>
-            <span>175 cm</span>
-          </div>
-          <div class="stat-row">
-            <span>Weight</span>
-            <span>70 kg</span>
-          </div>
-          <div class="stat-row">
-            <span>BMI</span>
-            <span>22.9</span>
+      <!-- Profile header -->
+      <div class="profile-header">
+        <div class="profile-avatar" id="avatarEl">?</div>
+        <div class="profile-meta">
+          <h1 id="profileDisplayName">Loading…</h1>
+          <div class="sub" style="display:flex;align-items:center;gap:0.6rem;">
+            <span id="profileRoleBadge" class="badge badge-green">—</span>
+            <span id="profileUsername" class="faint">@username</span>
           </div>
         </div>
-
-        <div class="card">
-          <div class="section-title">Goals &amp; cause</div>
-          <p class="muted">
-            Example goal: Build lean muscle and improve form on compound lifts.
-          </p>
-          <p class="muted" style="margin-top: 0.75rem;">
-            Cause: General fitness (this will later be populated from the doctor session notes).
-          </p>
-        </div>
-
-        <div class="card">
-          <div class="section-title">Session history</div>
-          <p class="muted">
-            Example:
-          </p>
-          <ul class="muted" style="margin-top: 0.5rem; padding-left: 1.1rem;">
-            <li>22 Feb 2026 – Full body strength check-in</li>
-            <li>15 Feb 2026 – Lower body form review</li>
-          </ul>
+        <div style="margin-left:auto;">
+          <button class="btn-outline btn-sm" id="editProfileBtn">&#9998; Edit profile</button>
+          <button class="btn-primary btn-sm" id="saveProfileBtn" style="display:none;margin-left:0.5rem;">&#10003; Save</button>
+          <button class="btn-ghost btn-sm" id="cancelEditBtn" style="display:none;margin-left:0.4rem;">Cancel</button>
         </div>
       </div>
+
+      <div id="profileError" class="alert-banner error" style="display:none;margin-bottom:1.25rem;"></div>
+      <div id="profileSuccess" class="alert-banner success" style="display:none;margin-bottom:1.25rem;"></div>
+
+      <div class="section-grid" style="align-items:start;">
+
+        <!-- Basic Info -->
+        <div class="card profile-section" id="basicInfoCard">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.9rem;">
+            <div class="section-title" style="margin-bottom:0;">Basic Info</div>
+          </div>
+          <div class="field-row">
+            <span class="field-label">Full name</span>
+            <span class="field-value view-val" id="valName">—</span>
+            <input class="editable-input edit-toggle" id="inputName" placeholder="Alex Johnson" />
+          </div>
+          <div class="field-row">
+            <span class="field-label">Age</span>
+            <span class="field-value view-val" id="valAge">—</span>
+            <input class="editable-input edit-toggle" id="inputAge" type="number" placeholder="25" min="10" max="120" />
+          </div>
+          <div class="field-row">
+            <span class="field-label">Email</span>
+            <span class="field-value view-val" id="valEmail">—</span>
+            <input class="editable-input edit-toggle" id="inputEmail" type="email" placeholder="you@email.com" style="width:190px;" />
+          </div>
+        </div>
+
+        <!-- Health Stats -->
+        <div class="card profile-section" id="healthCard">
+          <div class="section-title" style="margin-bottom:0.9rem;">Health Stats</div>
+          <div class="field-row">
+            <span class="field-label">Height</span>
+            <span class="field-value accent view-val" id="valHeight">— cm</span>
+            <input class="editable-input edit-toggle" id="inputHeight" type="number" placeholder="175" min="50" max="250" step="0.1" />
+          </div>
+          <div class="field-row">
+            <span class="field-label">Weight</span>
+            <span class="field-value accent view-val" id="valWeight">— kg</span>
+            <input class="editable-input edit-toggle" id="inputWeight" type="number" placeholder="70" min="20" max="300" step="0.1" />
+          </div>
+          <div class="field-row">
+            <span class="field-label">BMI</span>
+            <span class="field-value accent view-val" id="valBmi">—</span>
+            <input class="editable-input edit-toggle" id="inputBmi" type="number" placeholder="22.9" min="10" max="60" step="0.1" readonly style="opacity:0.6;cursor:not-allowed;" />
+          </div>
+          <p class="faint" style="margin-top:0.6rem;" id="bmiHint"></p>
+        </div>
+
+        <!-- Goals & Cause -->
+        <div class="card profile-section">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.9rem;">
+            <div class="section-title" style="margin-bottom:0;">Goals &amp; Cause</div>
+            <button class="btn-icon" id="editGoalsBtn" style="font-size:0.78rem;">&#9998; Edit</button>
+          </div>
+
+          <!-- Goals display/edit -->
+          <div class="field-row" style="flex-direction:column;align-items:stretch;border-bottom:none;gap:0.4rem;">
+            <span class="field-label">Fitness goal</span>
+            <div class="goals-display" id="goalsDisplay">—</div>
+            <div class="goals-edit" id="goalsEdit" style="display:none;">
+              <textarea id="inputGoals" placeholder="e.g. Build lean muscle and improve form on compound lifts."></textarea>
+            </div>
+            <span class="field-label" style="margin-top:0.75rem;">Therapy / cause</span>
+            <div class="goals-display" id="causeDisplay">—</div>
+            <div class="goals-edit" id="causeEdit" style="display:none;">
+              <textarea id="inputCause" placeholder="e.g. Post ACL recovery"></textarea>
+            </div>
+            <div id="goalsBtns" style="display:none;gap:0.5rem;margin-top:0.75rem;">
+              <button class="btn-primary btn-sm" id="saveGoalsBtn">Save goals</button>
+              <button class="btn-ghost btn-sm" id="cancelGoalsBtn">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Session History -->
+      <div class="card" style="margin-top:1.75rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+          <div class="section-title" style="margin-bottom:0;">Session History</div>
+          <span class="faint" id="sessionCount"></span>
+        </div>
+        <div id="sessionHistoryList">
+          <div class="loading-overlay"><span class="spinner"></span> Loading sessions…</div>
+        </div>
+      </div>
+
     </div>
   </main>
 
+  <div class="toast-container" id="toastContainer"></div>
   <script src="/app.js"></script>
 </body>
 </html>
-

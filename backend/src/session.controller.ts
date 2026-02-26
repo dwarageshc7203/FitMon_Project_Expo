@@ -2,9 +2,11 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   HttpException,
   HttpStatus,
   Logger,
+  Param,
   Post,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -294,6 +296,26 @@ export class SessionController {
     ) {
       throw new BadRequestException('pulse_rate must be a number between 30 and 220');
     }
+  }
+
+  @Get('history/:userId')
+  async getHistory(@Param('userId') userId: string) {
+    const [asDr, asPat] = await Promise.all([
+      this.sessionRepo.find({
+        where: { doctor: { id: userId } },
+        order: { createdAt: 'DESC' },
+        take: 10,
+      }),
+      this.sessionRepo.find({
+        where: { patient: { id: userId } },
+        order: { createdAt: 'DESC' },
+        take: 10,
+      }),
+    ]);
+    const all = [...asDr, ...asPat]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 20);
+    return { success: true, sessions: all };
   }
 }
 

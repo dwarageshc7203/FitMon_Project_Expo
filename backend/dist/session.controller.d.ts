@@ -44,5 +44,9 @@ export declare class SessionController {
     }>;
     generateReport(body: SessionRequest): Promise<SessionReport>;
     private validateInput;
+    getHistory(userId: string): Promise<{
+        success: boolean;
+        sessions: Session[];
+    }>;
 }
 export {};

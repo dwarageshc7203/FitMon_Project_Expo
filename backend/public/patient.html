@@ -1,166 +1,178 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Patient | Remote Physio</title>
+<title>Patient Session | FitMon</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<!-- ✅ Shared Socket.IO (same as doctor) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
-<script>
-const socket = io(window.location.origin); 
-</script>
-
+<script>const socket = io(window.location.origin);</script>
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background:#eef2ff;
-  margin:0;
-  padding:0;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-.container {
-  width:700px;
-  background:#fff;
-  padding:20px;
-  border-radius:12px;
-  box-shadow:0 0 12px rgba(0,0,0,.15);
-}
-video,canvas {
-  width:100%;
-  border-radius:10px;
-}
-button {
-  padding:10px 20px;
-  border:none;
-  background:#4a67ff;
-  color:white;
-  border-radius:8px;
-  cursor:pointer;
-}
-button:disabled {
-  background:#b5c0ff;
-}
+  .patient-layout { max-width: 800px; margin: 0 auto; padding: 2rem 1rem; }
+  .session-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+  .session-header h1 { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); }
+  .session-header .badge { background: rgba(34,197,94,.15); color: #4ade80; border: 1px solid rgba(34,197,94,.3); border-radius: 20px; padding: .3rem .9rem; font-size: .8rem; font-weight: 600; }
+  .camera-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-lg); padding: 1rem; margin-bottom: 1.5rem; }
+  .camera-card video, .camera-card canvas { width: 100%; border-radius: var(--radius-md); background: #000; display: block; }
+  .camera-card canvas { margin-top: .5rem; }
+  .cam-controls { display: flex; gap: .75rem; margin-top: 1rem; align-items: center; flex-wrap: wrap; }
+  .cam-status { font-size: .9rem; color: var(--text-muted); flex: 1; }
+  .stat-pill { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: .6rem 1.2rem; font-size: 1rem; font-weight: 700; color: var(--accent); display: inline-flex; align-items: center; gap: .4rem; }
+  .stat-pill span { font-size: .75rem; font-weight: 400; color: var(--text-muted); }
+  .btn-cam { padding: .6rem 1.4rem; font-size: .9rem; border-radius: var(--radius-md); border: none; cursor: pointer; font-weight: 600; transition: opacity .2s; }
+  .btn-cam.start { background: var(--accent); color: #000; }
+  .btn-cam.stop { background: #ef4444; color: #fff; }
+  .btn-cam:disabled { opacity: .45; cursor: not-allowed; }
 </style>
 </head>
-
 <body>
-<div class="container">
-  <h2>Patient Pose Tracking</h2>
+<nav class="navbar">
+  <a href="/home.html" class="logo">Fit<span>Mon</span></a>
+  <div class="nav-links">
+    <a href="/home.html">Home</a>
+    <a href="/workouts.html">Workouts</a>
+    <a href="/profile.html">Profile</a>
+    <a href="/session.html">Session</a>
+    <a href="#" data-logout class="btn-ghost" style="font-size:.85rem;">Logout</a>
+  </div>
+</nav>
 
-  <video id="video" autoplay playsinline muted></video>
-  <canvas id="canvas"></canvas>
+<div class="patient-layout">
+  <div class="session-header">
+    <h1>Live Patient Session</h1>
+    <span class="badge" id="sessionCodeBadge">Loading code…</span>
+  </div>
 
-  <br>
-  <button id="startBtn">Start Camera</button>
-  <button id="stopBtn" disabled>Stop Camera</button>
-
-  <p id="status">Idle</p>
-  <p>Reps: <span id="repCount">0</span></p>
+  <div class="camera-card">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas"></canvas>
+    <div class="cam-controls">
+      <button class="btn-cam start" id="startBtn">Start Camera</button>
+      <button class="btn-cam stop" id="stopBtn" disabled>Stop Camera</button>
+      <span class="cam-status" id="status">Idle — camera not started</span>
+      <div class="stat-pill">🔁 <span>Reps</span> <span id="repCount">0</span></div>
+    </div>
+  </div>
 </div>
 
+<div class="toast-container" id="toastContainer"></div>
+<script src="/app.js"></script>
+<script>
+// Join the session room so CV updates go to the right doctor
+(function joinPatientRoom() {
+  try {
+    const code = localStorage.getItem('fitmonSessionCode') || '';
+    if (!code) return;
+    // Wait for socket to be ready
+    const tryJoin = setInterval(() => {
+      if (typeof socket !== 'undefined' && socket.connected) {
+        socket.emit('join-session', { code, role: 'patient' });
+        clearInterval(tryJoin);
+        console.log('Patient joined room session-' + code);
+      }
+    }, 200);
+    // Also listen after reconnect
+    socket.on('connect', () => { socket.emit('join-session', { code, role: 'patient' }); });
+    // Doctor online/offline
+    socket.on('peer-joined', () => {
+      const s = document.getElementById('status');
+      if (s) s.textContent = 'Doctor is watching...';
+    });
+    socket.on('peer-left', () => {
+      const s = document.getElementById('status');
+      if (s) s.textContent = 'Doctor disconnected';
+    });
+  } catch(e) {}
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose_connections.js"></script>
-
 <script>
-const video = document.getElementById("video");
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-const statusEl = document.getElementById("status");
-const repEl = document.getElementById("repCount");
-
-let pose, camera;
-let repCount = 0;
-let armUp = false;
-let formScore = 85; // dummy accuracy for now (replace with your logic)
-
-function onResults(results) {
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-
-  ctx.save();
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.drawImage(results.image,0,0,canvas.width,canvas.height);
-  
-  if (results.poseLandmarks) {
-    drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS);
-    drawLandmarks(ctx, results.poseLandmarks, { radius: 4 });
-
-    const lm = results.poseLandmarks;
-    const shoulder = lm[11], elbow = lm[13], wrist = lm[15];
-    const angle = calcAngle(shoulder, elbow, wrist);
-
-    if (angle < 50 && !armUp) armUp = true;
-    if (angle > 160 && armUp) {
-      repCount++;
-      repEl.textContent = repCount;
-      armUp = false;
-
-      // ✅ Send rep + accuracy update to doctor
-      socket.emit("cv-update", {
-        reps: repCount,
-        formAccuracy: formScore,
-        timestamp: Date.now()
-      });
-      console.log("sent cv-update", repCount);
-    }
-  }
-
-  ctx.restore();
-}
-
-function calcAngle(a, b, c) {
-  const AB = Math.atan2(c.y - b.y, c.x - b.x);
-  const BC = Math.atan2(a.y - b.y, a.x - b.x);
-  let angle = Math.abs(AB - BC) * 180 / Math.PI;
-  if (angle > 180) angle = 360 - angle;
-  return angle;
-}
-
-document.getElementById("startBtn").onclick = async () => {
+(function() {
+  // Show session code in badge
   try {
-    pose = new Pose({
-      locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`
-    });
+    const code = localStorage.getItem('fitmonSessionCode');
+    const badge = document.getElementById('sessionCodeBadge');
+    if (code && badge) badge.textContent = 'Code: ' + code;
+    else if (badge) badge.textContent = 'No session code';
+  } catch(e) {}
 
-    pose.setOptions({
-      modelComplexity: 1,
-      minTrackingConfidence: 0.5,
-      minDetectionConfidence: 0.5
-    });
+  const video = document.getElementById("video");
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  const statusEl = document.getElementById("status");
+  const repEl = document.getElementById("repCount");
+  const startBtn = document.getElementById("startBtn");
+  const stopBtn = document.getElementById("stopBtn");
 
-    pose.onResults(onResults);
+  let pose, camera;
+  let repCount = 0;
+  let armUp = false;
+  let formScore = 85;
 
-    const stream = await navigator.mediaDevices.getUserMedia({ video:true });
-    video.srcObject = stream;
-
-    camera = new Camera(video, {
-      onFrame: async () => await pose.send({ image: video }),
-      width:640, height:480
-    });
-
-    await camera.start();
-    statusEl.textContent = "Camera started!";
-    startBtn.disabled = true;
-    stopBtn.disabled = false;
-
-  } catch (e) {
-    statusEl.textContent = "Camera error: " + e;
+  function onResults(results) {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.save();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+    if (results.poseLandmarks) {
+      drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS);
+      drawLandmarks(ctx, results.poseLandmarks, { radius: 4 });
+      const lm = results.poseLandmarks;
+      const shoulder = lm[11], elbow = lm[13], wrist = lm[15];
+      const angle = calcAngle(shoulder, elbow, wrist);
+      if (angle < 50 && !armUp) armUp = true;
+      if (angle > 160 && armUp) {
+        repCount++;
+        repEl.textContent = repCount;
+        armUp = false;
+        socket.emit("cv-update", { reps: repCount, formAccuracy: formScore, timestamp: Date.now() });
+      }
+    }
+    ctx.restore();
   }
-};
 
-document.getElementById("stopBtn").onclick = () => {
-  video.srcObject.getTracks().forEach(t=>t.stop());
-  if (camera) camera.stop();
-  statusEl.textContent = "Camera stopped";
-  stopBtn.disabled = true;
-  startBtn.disabled = false;
-};
+  function calcAngle(a, b, c) {
+    const AB = Math.atan2(c.y - b.y, c.x - b.x);
+    const BC = Math.atan2(a.y - b.y, a.x - b.x);
+    let angle = Math.abs(AB - BC) * 180 / Math.PI;
+    if (angle > 180) angle = 360 - angle;
+    return angle;
+  }
+
+  startBtn.onclick = async () => {
+    try {
+      pose = new Pose({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}` });
+      pose.setOptions({ modelComplexity: 1, minTrackingConfidence: 0.5, minDetectionConfidence: 0.5 });
+      pose.onResults(onResults);
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+      camera = new Camera(video, {
+        onFrame: async () => await pose.send({ image: video }),
+        width: 640, height: 480
+      });
+      await camera.start();
+      statusEl.textContent = "Camera active — tracking pose";
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+    } catch (e) {
+      statusEl.textContent = "Camera error: " + e;
+    }
+  };
+
+  stopBtn.onclick = () => {
+    if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+    if (camera) camera.stop();
+    statusEl.textContent = "Camera stopped";
+    stopBtn.disabled = true;
+    startBtn.disabled = false;
+  };
+})();
 </script>
 </body>
 </html>

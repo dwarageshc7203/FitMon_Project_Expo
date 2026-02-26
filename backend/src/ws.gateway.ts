@@ -8,82 +8,115 @@ import {
 import { Server, Socket } from 'socket.io';
 
 /**
- * WebSocket Gateway for real-time communication
- * Broadcasts updates to all connected doctor clients
+ * WebSocket Gateway — room-based session model.
+ * Each session code becomes a Socket.IO room: `session-{CODE}`.
+ * Doctor and patient both join the same room so events are scoped per session.
  */
 @WebSocketGateway({
-  cors: {
-    origin: '*',
-    credentials: true,
-  },
+  cors: { origin: '*', credentials: true },
   transports: ['websocket', 'polling'],
-  allowEIO3: true, // Allow Engine.IO v3 clients for compatibility
+  allowEIO3: true,
 })
 export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  // Track connected clients
-  private doctorClients: Set<Socket> = new Set();
+  // clientId → session room name
+  private clientRoom = new Map<string, string>();
 
-  /**
-   * Handle new client connection
-   */
   handleConnection(client: Socket) {
-    console.log(`🔌 Client connected: ${client.id}`);
-    this.doctorClients.add(client);
+    console.log(`🔌 Connected: ${client.id}`);
   }
 
-  /**
-   * Handle client disconnection
-   */
   handleDisconnect(client: Socket) {
-    console.log(`🔌 Client disconnected: ${client.id}`);
-    this.doctorClients.delete(client);
+    const room = this.clientRoom.get(client.id);
+    if (room) {
+      client.to(room).emit('peer-left', { timestamp: Date.now() });
+      this.clientRoom.delete(client.id);
+      console.log(`🔌 ${client.id} left room ${room}`);
+    }
+    console.log(`🔌 Disconnected: ${client.id}`);
   }
 
   /**
-   * Handle cv-update events from patient clients
-   * Receives rep count and form accuracy, then broadcasts to all doctor clients
+   * join-session — client joins a named session room.
+   * Payload: { code: string; role: 'doctor' | 'patient' }
+   */
+  @SubscribeMessage('join-session')
+  handleJoinSession(client: Socket, payload: { code: string; role: string }) {
+    const room = `session-${(payload.code || '').toUpperCase()}`;
+    client.join(room);
+    this.clientRoom.set(client.id, room);
+    // Tell the other party that a peer connected
+    client.to(room).emit('peer-joined', {
+      role: payload.role,
+      timestamp: Date.now(),
+    });
+    console.log(`📡 ${payload.role} ${client.id} joined room ${room}`);
+    return { success: true, room };
+  }
+
+  /**
+   * leave-session — explicitly leave the room.
+   */
+  @SubscribeMessage('leave-session')
+  handleLeaveSession(client: Socket, payload: { code: string }) {
+    const room = `session-${(payload.code || '').toUpperCase()}`;
+    client.leave(room);
+    this.clientRoom.delete(client.id);
+    client.to(room).emit('peer-left', { timestamp: Date.now() });
+    return { success: true };
+  }
+
+  /**
+   * cv-update — patient sends pose data; broadcast to the same session room.
    */
   @SubscribeMessage('cv-update')
-  handleCVUpdate(client: Socket, payload: { reps: number; formAccuracy: number; timestamp?: number }) {
+  handleCVUpdate(
+    client: Socket,
+    payload: { reps: number; formAccuracy: number; timestamp?: number },
+  ) {
     const data = {
       reps: payload.reps ?? 0,
       formAccuracy: payload.formAccuracy ?? 0,
       timestamp: payload.timestamp ?? Date.now(),
     };
-
-    console.log(`🎥 Received CV update from client ${client.id}: ${data.reps} reps, ${data.formAccuracy}% accuracy`);
-
-    // Broadcast to all connected clients (doctor dashboard)
-    this.server.emit('cv-update', data);
-    
+    const room = this.clientRoom.get(client.id);
+    if (room) {
+      client.to(room).emit('cv-update', data); // only to the doctor in this session
+    } else {
+      this.server.emit('cv-update', data); // fallback: no room yet
+    }
+    console.log(`🎥 cv-update from ${client.id} → room ${room ?? 'broadcast'}`);
     return { success: true };
   }
 
   /**
-   * Broadcast sensor data to all doctor clients
+   * Broadcast sensor data from IoT controller to the relevant session room.
+   * If no code is provided, falls back to global broadcast.
    */
-  broadcastSensorData(data: { timestamp: number; value: number }) {
-    this.server.emit('sensor-data', data);
-    console.log(`📊 Broadcasting sensor data: ${data.value}`);
+  broadcastSensorData(data: { timestamp: number; value: number; pulse?: number }, code?: string) {
+    if (code) {
+      this.server.to(`session-${code.toUpperCase()}`).emit('sensor-data', data);
+    } else {
+      this.server.emit('sensor-data', data);
+    }
+    console.log(`📊 sensor-data → ${code ? `session-${code}` : 'broadcast'}: ${data.value}`);
   }
 
-  /**
-   * Broadcast CV data (reps and form accuracy) to all doctor clients
-   * (Alternative method for HTTP POST endpoint compatibility)
-   */
-  broadcastCVData(data: { reps: number; formAccuracy: number; timestamp: number }) {
-    this.server.emit('cv-update', data);
-    console.log(`🎥 Broadcasting CV update: ${data.reps} reps, ${data.formAccuracy}% accuracy`);
+  broadcastCVData(data: { reps: number; formAccuracy: number; timestamp: number }, code?: string) {
+    if (code) {
+      this.server.to(`session-${code.toUpperCase()}`).emit('cv-update', data);
+    } else {
+      this.server.emit('cv-update', data);
+    }
   }
 
   /**
    * Get number of connected doctor clients
    */
   getConnectedClientsCount(): number {
-    return this.doctorClients.size;
+    return this.clientRoom.size;
   }
 }
 

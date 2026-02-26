@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -7,12 +7,18 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body data-page="workouts">
+<script>
+(function(){
+  try {
+    var u = JSON.parse(localStorage.getItem('fitmonCurrentUser')||'null');
+    if (!u) window.location.href = '/login.html';
+    else if (u.role === 'doctor') window.location.href = '/home.html';
+  } catch(e) { window.location.href = '/login.html'; }
+})();
+</script>
   <header class="navbar">
     <div class="navbar-inner">
-      <a href="/home.html" class="brand">
-        <div class="brand-pill"></div>
-        <span>FitMon</span>
-      </a>
+      <a href="/home.html" class="brand"><div class="brand-pill"></div><span>FitMon</span></a>
       <nav class="nav-links">
         <a href="/home.html">Home</a>
         <a href="/profile.html">Profile</a>
@@ -25,99 +31,123 @@
 
   <main class="page">
     <div class="page-inner">
-      <h1 class="section-title">Workout feed</h1>
-      <p class="section-subtitle">
-        Recommended sessions based on your recent progress and profile.
-      </p>
 
-      <div class="section-grid" id="workoutGrid">
-        <!-- Static fallback content in case API is empty or fails -->
-        <div class="card" data-fallback="true">
-          <div class="section-title">Dynamic warm-up</div>
-          <p class="muted">5–10 minutes | Full body</p>
-          <iframe width="100%" height="200"
-                  src="https://www.youtube.com/embed/dj2NvQya_QA"
-                  title="Dynamic warm-up"
-                  allowfullscreen></iframe>
+      <!-- Header row -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+        <div>
+          <h1 class="page-heading">Workout Feed</h1>
+          <p class="section-subtitle" style="margin-bottom:0;">
+            Exercises recommended for your level: <span id="workoutLevel" class="badge badge-green" style="margin-left:0.35rem;vertical-align:middle;">—</span>
+          </p>
         </div>
-        <div class="card" data-fallback="true">
-          <div class="section-title">Upper body strength</div>
-          <p class="muted">Biceps, shoulders, back</p>
-          <iframe width="100%" height="200"
-                  src="https://www.youtube.com/embed/ykJmrZ5v0Oo"
-                  title="Upper body workout"
-                  allowfullscreen></iframe>
+        <div style="display:flex;align-items:center;gap:0.7rem;">
+          <button class="btn-ghost btn-sm" id="refreshWorkouts">&#8635; Refresh</button>
         </div>
       </div>
+
+      <div id="workoutGrid" class="workout-grid">
+        <!-- skeleton fallback -->
+        <div class="workout-card" data-fallback="true">
+          <iframe src="https://www.youtube.com/embed/dj2NvQya_QA" title="Dynamic Warm-Up" allowfullscreen></iframe>
+          <div class="card-body">
+            <div class="section-title" style="font-size:0.95rem;">Dynamic Warm-Up</div>
+            <div class="workout-meta">
+              <span class="badge badge-blue">Beginner</span>
+              <span class="badge badge-gray">Full Body</span>
+              <span class="muted" style="font-size:0.78rem;">5–10 min</span>
+            </div>
+          </div>
+        </div>
+        <div class="workout-card" data-fallback="true">
+          <iframe src="https://www.youtube.com/embed/ykJmrZ5v0Oo" title="Upper Body Strength" allowfullscreen></iframe>
+          <div class="card-body">
+            <div class="section-title" style="font-size:0.95rem;">Upper Body Strength</div>
+            <div class="workout-meta">
+              <span class="badge badge-yellow">Intermediate</span>
+              <span class="badge badge-gray">Upper Body</span>
+            </div>
+          </div>
+        </div>
+        <div class="workout-card" data-fallback="true">
+          <iframe src="https://www.youtube.com/embed/5FQURqekbVA" title="Knee Rehab" allowfullscreen></iframe>
+          <div class="card-body">
+            <div class="section-title" style="font-size:0.95rem;">Knee Rehabilitation</div>
+            <div class="workout-meta">
+              <span class="badge badge-green">Rehab</span>
+              <span class="badge badge-gray">Lower Body</span>
+            </div>
+          </div>
+        </div>
+        <div class="workout-card" data-fallback="true">
+          <iframe src="https://www.youtube.com/embed/IODxDxX7oi4" title="Core Workout" allowfullscreen></iframe>
+          <div class="card-body">
+            <div class="section-title" style="font-size:0.95rem;">Core Strength</div>
+            <div class="workout-meta">
+              <span class="badge badge-yellow">Intermediate</span>
+              <span class="badge badge-gray">Core</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </main>
 
+  <div class="toast-container" id="toastContainer"></div>
   <script src="/app.js"></script>
   <script>
-    // Fetch personalized workouts from backend using current user id.
-    document.addEventListener('DOMContentLoaded', function () {
-      var grid = document.getElementById('workoutGrid');
-      if (!grid) return;
+    (function () {
+      function loadWorkouts() {
+        var grid = document.getElementById('workoutGrid');
+        var levelEl = document.getElementById('workoutLevel');
+        var rawUser = null;
+        try { rawUser = localStorage.getItem('fitmonCurrentUser'); } catch (e) {}
+        if (!rawUser) return;
+        var user;
+        try { user = JSON.parse(rawUser); } catch (e) { return; }
+        if (!user || !user.id) return;
 
-      var rawUser = null;
-      try {
-        rawUser = localStorage.getItem('fitmonCurrentUser');
-      } catch (e) {
-        // ignore
-      }
-      if (!rawUser) return;
+        var goals = user.goals || '';
+        fetch('/workouts?userId=' + encodeURIComponent(user.id) + (goals ? '&goals=' + encodeURIComponent(goals) : ''))
 
-      var user = null;
-      try {
-        user = JSON.parse(rawUser);
-      } catch (e) {
-        return;
-      }
-      if (!user || !user.id) return;
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            if (!data || !Array.isArray(data.workouts) || data.workouts.length === 0) return;
 
-      fetch('/workouts?userId=' + encodeURIComponent(user.id))
-        .then(function (res) { return res.json(); })
-        .then(function (data) {
-          if (!data || !Array.isArray(data.workouts) || data.workouts.length === 0) {
-            return;
-          }
-
-          grid.innerHTML = '';
-          data.workouts.forEach(function (w) {
-            var card = document.createElement('div');
-            card.className = 'card';
-
-            var titleDiv = document.createElement('div');
-            titleDiv.className = 'section-title';
-            titleDiv.textContent = w.title || 'Workout';
-            card.appendChild(titleDiv);
-
-            var metaP = document.createElement('p');
-            metaP.className = 'muted';
-            var parts = [];
-            if (w.level) parts.push(w.level.charAt(0).toUpperCase() + w.level.slice(1));
-            if (w.focusArea) parts.push(w.focusArea);
-            metaP.textContent = parts.join(' • ');
-            card.appendChild(metaP);
-
-            if (w.youtubeUrl) {
-              var iframe = document.createElement('iframe');
-              iframe.width = '100%';
-              iframe.height = '200';
-              iframe.src = w.youtubeUrl;
-              iframe.title = w.title || 'Workout video';
-              iframe.allowFullscreen = true;
-              card.appendChild(iframe);
+            if (levelEl && data.level) {
+              levelEl.textContent = data.level.charAt(0).toUpperCase() + data.level.slice(1);
+              levelEl.className = 'badge ' + (data.level === 'advanced' ? 'badge-red' : data.level === 'intermediate' ? 'badge-yellow' : 'badge-green');
             }
 
-            grid.appendChild(card);
-          });
-        })
-        .catch(function () {
-          // On error, keep fallback content.
-        });
-    });
+            grid.innerHTML = '';
+            data.workouts.forEach(function (w) {
+              var card = document.createElement('div');
+              card.className = 'workout-card';
+
+              var lvlCls = w.level === 'advanced' ? 'badge-red' : w.level === 'intermediate' ? 'badge-yellow' : 'badge-green';
+
+              card.innerHTML =
+                '<iframe src="' + (w.youtubeUrl || '') + '" title="' + (w.title || 'Workout') + '" allowfullscreen></iframe>' +
+                '<div class="card-body">' +
+                  '<div class="section-title" style="font-size:0.95rem;">' + (w.title || 'Workout') + '</div>' +
+                  '<div class="workout-meta">' +
+                    (w.level ? '<span class="badge ' + lvlCls + '">' + w.level + '</span>' : '') +
+                    (w.focusArea ? '<span class="badge badge-gray">' + w.focusArea + '</span>' : '') +
+                    (w.goalTag ? '<span class="muted" style="font-size:0.78rem;">' + w.goalTag + '</span>' : '') +
+                  '</div>' +
+                '</div>';
+              grid.appendChild(card);
+            });
+          })
+          .catch(function () { /* keep fallback */ });
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        loadWorkouts();
+        var btn = document.getElementById('refreshWorkouts');
+        if (btn) btn.addEventListener('click', function () { loadWorkouts(); });
+      });
+    })();
   </script>
 </body>
 </html>
-

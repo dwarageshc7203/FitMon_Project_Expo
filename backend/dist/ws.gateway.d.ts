@@ -2,9 +2,21 @@ import { OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 export declare class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     server: Server;
-    private doctorClients;
+    private clientRoom;
     handleConnection(client: Socket): void;
     handleDisconnect(client: Socket): void;
+    handleJoinSession(client: Socket, payload: {
+        code: string;
+        role: string;
+    }): {
+        success: boolean;
+        room: string;
+    };
+    handleLeaveSession(client: Socket, payload: {
+        code: string;
+    }): {
+        success: boolean;
+    };
     handleCVUpdate(client: Socket, payload: {
         reps: number;
         formAccuracy: number;
@@ -15,11 +27,12 @@ export declare class WsGateway implements OnGatewayConnection, OnGatewayDisconne
     broadcastSensorData(data: {
         timestamp: number;
         value: number;
-    }): void;
+        pulse?: number;
+    }, code?: string): void;
     broadcastCVData(data: {
         reps: number;
         formAccuracy: number;
         timestamp: number;
-    }): void;
+    }, code?: string): void;
     getConnectedClientsCount(): number;
 }
