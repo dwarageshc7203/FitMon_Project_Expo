@@ -212,16 +212,58 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="/app.js"></script>
   <script>
-    // Inline socket logic wrapper for doctor specific things
+    // ─── Socket setup ────────────────────────────────────────────────────────
+    const socket = io(window.location.origin);
+
     document.addEventListener('DOMContentLoaded', () => {
         const userStr = localStorage.getItem('fitmonCurrentUser');
         let userName = 'Consultant';
-        if(userStr) {
+        if (userStr) {
             const user = JSON.parse(userStr);
             userName = user.username;
             document.getElementById('navName').textContent = userName;
             document.getElementById('navAvatar').textContent = userName.charAt(0).toUpperCase();
         }
+
+        // Join the session room so cv-update and sensor-data are scoped correctly
+        const code = localStorage.getItem('fitmonSessionCode');
+        if (code) {
+            socket.emit('join-session', { code, role: 'doctor' });
+        }
+
+        const connStatus = document.getElementById('connStatus');
+        if (connStatus) connStatus.innerHTML =
+          '<span class="status-indicator disconnected" id="wsStatusDot"></span> Connecting...';
+    });
+
+    socket.on('connect', () => {
+        const dot = document.getElementById('wsStatusDot');
+        if (dot) { dot.className = 'status-indicator connected'; dot.nextSibling.textContent = ' Live'; }
+        const code = localStorage.getItem('fitmonSessionCode');
+        if (code) socket.emit('join-session', { code, role: 'doctor' });
+    });
+
+    socket.on('disconnect', () => {
+        const dot = document.getElementById('wsStatusDot');
+        if (dot) { dot.className = 'status-indicator disconnected'; dot.nextSibling.textContent = ' Disconnected'; }
+    });
+
+    // Live CV data from patient
+    socket.on('cv-update', (data) => {
+        const repEl  = document.getElementById('repCount');
+        const accEl  = document.getElementById('formAccuracy');
+        if (repEl && data.reps !== undefined)
+            repEl.textContent = data.reps;
+        if (accEl && data.formAccuracy !== undefined)
+            accEl.textContent = Math.round(data.formAccuracy) + '%';
+    });
+
+    // Live sensor data from IoT
+    socket.on('sensor-data', (data) => {
+        const sensorEl = document.getElementById('sensorValue');
+        const pulseEl  = document.getElementById('pulseValue');
+        if (sensorEl && data.value  !== undefined) sensorEl.textContent = Math.round(data.value) + '%';
+        if (pulseEl  && data.pulse  !== undefined) pulseEl.textContent  = Math.round(data.pulse) + ' bpm';
     });
 
     // BMI Calculation
@@ -236,6 +278,128 @@
     if(bh && bw) {
         bh.addEventListener('input', calcBmi);
         bw.addEventListener('input', calcBmi);
+    }
+
+    // Report Generation Form Handler
+    const reportForm = document.getElementById('sessionReportForm');
+    if(reportForm) {
+        reportForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('generateBtn');
+            const loader = document.getElementById('loadingIndicator');
+            const reportSection = document.getElementById('reportSection');
+            const reportContent = document.getElementById('reportContent');
+            
+            // Get form values
+            const formData = {
+                height: parseFloat(document.getElementById('height').value),
+                weight: parseFloat(document.getElementById('weight').value),
+                bmi: parseFloat(document.getElementById('bmi').value),
+                fitness_experience: document.getElementById('fitness_experience').value.toLowerCase(),
+                therapy_cause: document.getElementById('therapy_cause').value,
+                goal: document.getElementById('goal').value,
+                accuracy_rate: parseFloat(document.getElementById('formAccuracy').textContent) || 0,
+                activation_rate: parseFloat(document.getElementById('sensorValue').textContent) || 0,
+                pulse_rate: parseInt(document.getElementById('pulseValue').textContent) || 70
+            };
+            
+            // Validate
+            if(!formData.height || !formData.weight || !formData.bmi) {
+                alert('Please fill in all patient details');
+                return;
+            }
+            
+            // Show loading
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            loader.style.display = 'block';
+            
+            try {
+                const response = await fetch('/session/generate-report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                if(!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || error.error || 'Failed to generate report');
+                }
+                
+                const report = await response.json();
+                
+                // Display report
+                displayReport(report);
+                reportSection.classList.add('active');
+                reportSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+            } catch(err) {
+                alert('Error generating report: ' + err.message);
+                console.error('Report generation error:', err);
+            } finally {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                loader.style.display = 'none';
+            }
+        });
+    }
+    
+    function displayReport(report) {
+        const statusBadge = document.getElementById('goalStatusBadge');
+        const content = document.getElementById('reportContent');
+        
+        // Update status badge
+        statusBadge.textContent = report.goal_status.toUpperCase();
+        statusBadge.className = 'report-status ' + report.goal_status.replace(' ', '-');
+        
+        // Build report HTML
+        let html = `
+            <div style="border-left: 3px solid var(--green-bright); padding-left: 1.5rem; margin-bottom: 2rem;">
+                <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Performance Grade: ${report.performance_grade}</h3>
+                <p style="color: var(--text-soft); line-height: 1.6;">${report.summary}</p>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                <div>
+                    <h4 style="color: var(--blue-bright); margin-bottom: 1rem;">📊 Metrics Analysis</h4>
+                    <div style="background: rgba(41, 121, 255, 0.05); padding: 1rem; border-radius: 8px; border: 1px solid rgba(41, 121, 255, 0.2);">
+                        <p><strong>Accuracy:</strong> ${report.metrics_analysis.accuracy_rate}%</p>
+                        <p><strong>Activation:</strong> ${report.metrics_analysis.activation_rate}%</p>
+                        <p><strong>Consistency:</strong> ${report.metrics_analysis.consistency_score}/100</p>
+                        <p><strong>Effort Index:</strong> ${report.metrics_analysis.effort_index}/100</p>
+                        <p style="color: var(--text-soft); margin-top: 0.5rem;">${report.metrics_analysis.insight}</p>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 style="color: var(--purple-bright); margin-bottom: 1rem;">🎯 Adaptive Plan</h4>
+                    <div style="background: rgba(213, 0, 249, 0.05); padding: 1rem; border-radius: 8px; border: 1px solid rgba(213, 0, 249, 0.2);">
+                        <p><strong>Type:</strong> ${report.adaptive_plan.type.toUpperCase()}</p>
+                        <p><strong>Intensity:</strong> ${report.adaptive_plan.intensity_level}</p>
+                        <p style="color: var(--text-soft); margin-top: 0.5rem;">${report.adaptive_plan.action}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 2rem;">
+                <h4 style="margin-bottom: 1rem;">💡 Recommendations</h4>
+                <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--card-border);">
+                    <p><strong>Immediate Actions:</strong></p>
+                    <ul>${report.recommendations.immediate_actions.map(a => `<li>${a}</li>`).join('')}</ul>
+                    <p style="margin-top: 1rem;"><strong>Next Session Focus:</strong></p>
+                    <ul>${report.next_session_focus.map(f => `<li>${f}</li>`).join('')}</ul>
+                </div>
+            </div>
+            
+            ${report.red_flags && report.red_flags.length > 0 ? `
+            <div style="background: rgba(255, 23, 68, 0.1); border: 1px solid rgba(255, 23, 68, 0.3); padding: 1rem; border-radius: 8px;">
+                <h4 style="color: var(--danger); margin-bottom: 0.5rem;">⚠️ Red Flags</h4>
+                <ul>${report.red_flags.map(f => `<li>${f}</li>`).join('')}</ul>
+            </div>` : ''}
+        `;
+        
+        content.innerHTML = html;
     }
   </script>
 </body>

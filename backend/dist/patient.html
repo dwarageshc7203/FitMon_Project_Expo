@@ -7,6 +7,10 @@
   <link rel="stylesheet" href="/styles.css" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
   <style>
     .camera-layout { display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; margin-bottom: 1.5rem; }
     @media (max-width: 1024px) { .camera-layout { grid-template-columns: 1fr; } }
@@ -292,23 +296,146 @@
   <script src="/app.js"></script>
   <script>
     const socket = io(window.location.origin);
-    let currentExercise = null;
-    let cameraActive = false;
-    let sessionStartTime = null;
+
+    // ─── State ───────────────────────────────────────────────────────────────
+    let currentExercise   = null;
+    let cameraActive      = false;
+    let sessionStartTime  = null;
+    let poseModel         = null;   // MediaPipe Pose instance
+    let mpCamera          = null;   // MediaPipe Camera helper
+    let poseReady         = false;
+    let repCount          = 0;
+    let isDown            = false;
+    let formAccuracySum   = 0;
+    let formAccuracyCount = 0;
+    let lastEmittedReps   = -1;
+    let soloMode          = false;
+
+    // ─── Exercise joint configurations ───────────────────────────────────────
+    // joints: [a, b, c] landmark indices for angle(a-b-c)
+    // downAngle: threshold to consider "bottom" of movement
+    // upAngle:   threshold to consider "top" (rep complete)
+    const EXERCISE_CONFIG = {
+      squat:  { joints: [23, 25, 27], downAngle: 90,  upAngle: 165 },
+      pushup: { joints: [11, 13, 15], downAngle: 80,  upAngle: 160 },
+      lunge:  { joints: [23, 25, 27], downAngle: 90,  upAngle: 165 },
+      curl:   { joints: [11, 13, 15], downAngle: 50,  upAngle: 160 },
+      plank:  { joints: [11, 23, 25], downAngle: 155, upAngle: 175 },
+      row:    { joints: [12, 14, 16], downAngle: 80,  upAngle: 160 },
+    };
+
+    // ─── Angle helper ─────────────────────────────────────────────────────────
+    function calcAngle(a, b, c) {
+      const r = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
+      let deg = Math.abs(r * 180 / Math.PI);
+      if (deg > 180) deg = 360 - deg;
+      return deg;
+    }
+
+    function getExerciseCfg() {
+      const id = currentExercise ? currentExercise.id : 'squat';
+      return EXERCISE_CONFIG[id] || EXERCISE_CONFIG.squat;
+    }
+
+    // ─── Pose results handler ─────────────────────────────────────────────────
+    function onPoseResults(results) {
+      const canvas = document.getElementById('poseCanvas');
+      const video  = document.getElementById('webcam');
+      const ctx    = canvas.getContext('2d');
+
+      canvas.width  = video.videoWidth  || 640;
+      canvas.height = video.videoHeight || 480;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (!results.poseLandmarks) return;
+
+      // Draw skeleton overlay
+      drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS,
+        { color: '#00e676', lineWidth: 2 });
+      drawLandmarks(ctx, results.poseLandmarks,
+        { color: '#ffffff', lineWidth: 1, radius: 3 });
+
+      const lm = results.poseLandmarks;
+      const { joints, downAngle, upAngle } = getExerciseCfg();
+      const [ai, bi, ci] = joints;
+
+      if (!lm[ai] || !lm[bi] || !lm[ci]) return;
+
+      const angle = calcAngle(lm[ai], lm[bi], lm[ci]);
+
+      // Accumulate form accuracy score each frame
+      const range = Math.abs(upAngle - downAngle);
+      const frameAccuracy = Math.max(0, Math.min(
+        100, 100 - (Math.abs(angle - (isDown ? downAngle : upAngle)) / range) * 60
+      ));
+      formAccuracySum   += frameAccuracy;
+      formAccuracyCount += 1;
+
+      // Rep detection: down-phase then up-phase = 1 rep
+      if (!isDown && angle < downAngle) {
+        isDown = true;
+      } else if (isDown && angle > upAngle * 0.9) {
+        isDown = false;
+        repCount++;
+
+        const avgAccuracy = formAccuracyCount > 0
+          ? Math.round(formAccuracySum / formAccuracyCount) : 75;
+        formAccuracySum   = 0;
+        formAccuracyCount = 0;
+
+        // Update local UI immediately
+        document.getElementById('repCounter').textContent = repCount;
+        document.getElementById('formScore').textContent  = avgAccuracy + '%';
+        document.getElementById('formProgress').style.width = avgAccuracy + '%';
+
+        // Broadcast to doctor via socket (skipped silently in solo mode)
+        if (repCount !== lastEmittedReps) {
+          socket.emit('cv-update', {
+            reps: repCount,
+            formAccuracy: avgAccuracy,
+            timestamp: Date.now(),
+          });
+          lastEmittedReps = repCount;
+        }
+      }
+    }
+
+    // ─── MediaPipe initialisation ─────────────────────────────────────────────
+    async function initPose() {
+      if (poseReady) return;
+      poseModel = new Pose({
+        locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`,
+      });
+      poseModel.setOptions({
+        modelComplexity: 1,
+        smoothLandmarks: true,
+        enableSegmentation: false,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5,
+      });
+      poseModel.onResults(onPoseResults);
+      await poseModel.initialize();
+      poseReady = true;
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
       const user = getCurrentUser();
       if (!user) { window.location.href = '/login.html'; return; }
-      
-      document.getElementById('navName').textContent = user.username;
+
+      document.getElementById('navName').textContent   = user.username;
       document.getElementById('navAvatar').textContent = user.username.charAt(0).toUpperCase();
-      
-      const code = localStorage.getItem('fitmonSessionCode');
-      if (code) {
-        socket.emit('patient-join', { code, userId: user.id });
+
+      soloMode = localStorage.getItem('fitmonSoloMode') === 'true';
+      if (soloMode) {
+        document.getElementById('navRole').textContent = 'Solo Practice';
+        localStorage.removeItem('fitmonSoloMode');
+      } else {
+        const code = localStorage.getItem('fitmonSessionCode');
+        if (code) {
+          socket.emit('join-session', { code, role: 'patient' });
+        }
       }
 
-      // Start session timer
       sessionStartTime = Date.now();
       setInterval(updateSessionTime, 1000);
     });
@@ -316,6 +443,12 @@
     socket.on('connect', () => {
       document.getElementById('connStatus').classList.add('online');
       document.getElementById('connStatus').querySelector('span').textContent = 'Connected';
+      // Re-join session room after reconnect
+      if (!soloMode) {
+        const code = localStorage.getItem('fitmonSessionCode');
+        const user = getCurrentUser();
+        if (code && user) socket.emit('join-session', { code, role: 'patient' });
+      }
     });
 
     socket.on('disconnect', () => {
@@ -323,18 +456,11 @@
       document.getElementById('connStatus').querySelector('span').textContent = 'Disconnected';
     });
 
-    socket.on('rep-update', (data) => {
-      document.getElementById('repCounter').textContent = data.count || 0;
-    });
-
-    socket.on('form-update', (data) => {
-      const score = Math.round(data.accuracy || 0);
-      document.getElementById('formScore').textContent = score + '%';
-      document.getElementById('formProgress').style.width = score + '%';
-    });
-
-    socket.on('sensor-update', (data) => {
-      document.getElementById('muscleActivation').textContent = Math.round(data.value || 0) + '%';
+    socket.on('sensor-data', (data) => {
+      if (data.value !== undefined)
+        document.getElementById('muscleActivation').textContent = Math.round(data.value) + '%';
+      if (data.pulse !== undefined)
+        document.getElementById('heartRate').textContent = Math.round(data.pulse) + ' bpm';
     });
 
     function openExerciseModal() {
@@ -351,32 +477,55 @@
       currentExercise = { id, name };
       document.getElementById('activeExName').textContent = name;
       document.getElementById('activeExBanner').classList.add('active');
+      // Reset counts when exercise changes
+      repCount = 0; isDown = false; lastEmittedReps = -1;
+      formAccuracySum = 0; formAccuracyCount = 0;
+      document.getElementById('repCounter').textContent = '0';
+      document.getElementById('formScore').textContent  = '0%';
+      document.getElementById('formProgress').style.width = '0%';
     }
 
-    function toggleCamera() {
-      const btn = document.getElementById('toggleCameraBtn');
+    // ─── Camera / Pose pipeline ───────────────────────────────────────────────
+    async function toggleCamera() {
+      const btn   = document.getElementById('toggleCameraBtn');
       const badge = document.getElementById('liveBadge');
       const video = document.getElementById('webcam');
-      
+
       if (!cameraActive) {
-        navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
-          video.srcObject = stream;
+        btn.disabled = true;
+        btn.textContent = 'Starting…';
+        try {
+          await initPose();
+
+          mpCamera = new Camera(video, {
+            onFrame: async () => {
+              if (video.videoWidth > 0) {
+                await poseModel.send({ image: video });
+              }
+            },
+            width: 640,
+            height: 480,
+          });
+          await mpCamera.start();
+
           cameraActive = true;
-          btn.innerHTML = '<svg class=\"icon\" viewBox=\"0 0 24 24\"><path d=\"M1 1l22 22\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M21 15V7l-4 3.5V7H8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/></svg> Stop Camera';
+          btn.disabled = false;
+          btn.innerHTML = '<svg class="icon" viewBox="0 0 24 24"><path d="M1 1l22 22" stroke="currentColor" stroke-width="2"/><path d="M21 15V7l-4 3.5V7H8" fill="none" stroke="currentColor" stroke-width="2"/></svg> Stop Camera';
           badge.classList.add('recording');
           badge.querySelector('span').textContent = 'LIVE';
-        }).catch(err => {
-          console.error('Camera access denied:', err);
-          alert('Please allow camera access to start the session.');
-        });
-      } else {
-        const stream = video.srcObject;
-        if (stream) {
-          stream.getTracks().forEach(track => track.stop());
-          video.srcObject = null;
+        } catch (err) {
+          btn.disabled = false;
+          btn.innerHTML = '<svg class="icon" viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z" fill="currentColor"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/></svg> Start Camera';
+          console.error('Camera/pose error:', err);
+          alert('Could not start camera: ' + err.message);
         }
+      } else {
+        if (mpCamera) { mpCamera.stop(); mpCamera = null; }
+        const stream = video.srcObject;
+        if (stream) stream.getTracks().forEach(t => t.stop());
+        video.srcObject = null;
         cameraActive = false;
-        btn.innerHTML = '<svg class=\"icon\" viewBox=\"0 0 24 24\"><path d=\"M23 7l-7 5 7 5V7z\" fill=\"currentColor\"/><rect x=\"1\" y=\"5\" width=\"15\" height=\"14\" rx=\"2\" ry=\"2\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/></svg> Start Camera';
+        btn.innerHTML = '<svg class="icon" viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z" fill="currentColor"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/></svg> Start Camera';
         badge.classList.remove('recording');
         badge.querySelector('span').textContent = 'CAMERA OFF';
       }
