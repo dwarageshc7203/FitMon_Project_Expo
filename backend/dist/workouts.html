@@ -2,152 +2,213 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>FitMon – Workouts</title>
+  <title>Kenesis - Workout Library</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Workout Hub Specifics - matching new design system */
+    .filter-bar { 
+        display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 2rem; align-items: center; 
+        background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);
+    }
+    .filter-label { font-family: 'Space Grotesk', sans-serif; font-size: 0.85rem; color: rgba(255,255,255,0.6); font-weight: 700; margin-right: 0.5rem; text-transform: uppercase; letter-spacing: 1px; }
+    
+    .filter-chip {
+      padding: 0.6rem 1.25rem; border-radius: 12px; font-size: 0.9rem; font-weight: 600; font-family: 'Inter', sans-serif;
+      cursor: pointer; border: 1px solid rgba(255,255,255,0.1); background: transparent;
+      color: rgba(255,255,255,0.6); transition: all 0.2s ease;
+    }
+    .filter-chip:hover { border-color: var(--neon-green); color: #fff; transform: translateY(-1px); }
+    .filter-chip.active { background: var(--neon-green); border-color: var(--neon-green); color: #000; box-shadow: 0 5px 15px rgba(0,230,118,0.2); }
+    
+    .workout-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem; }
+    
+    .workout-card {
+      background: rgba(10, 10, 10, 0.6); border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px; overflow: hidden; transition: all 0.3s ease;
+      display: flex; flex-direction: column; position: relative;
+    }
+    .workout-card::after {
+        content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 2px;
+        background: var(--neon-green); transform: scaleX(0); transform-origin: left; transition: transform 0.3s ease;
+    }
+    .workout-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.2); }
+    .workout-card:hover::after { transform: scaleX(1); }
+    
+    .video-wrapper { position: relative; width: 100%; padding-top: 56.25%; background: #000; }
+    .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; opacity: 0.8; transition: opacity 0.3s; }
+    .workout-card:hover iframe { opacity: 1; }
+    
+    .card-body { padding: 1.5rem; flex: 1; display: flex; flex-direction: column; }
+    .workout-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; font-family: "Space Grotesk", sans-serif; color: #fff; }
+    .workout-desc { font-size: 0.9rem; color: rgba(255,255,255,0.5); line-height: 1.5; margin-bottom: 1rem; }
+    
+    .workout-meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: auto; }
+    
+    .badge { display: inline-flex; align-items: center; padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .badge-green { background: rgba(0, 230, 118, 0.1); color: var(--neon-green); border: 1px solid rgba(0, 230, 118, 0.2); }
+    .badge-blue { background: rgba(41, 121, 255, 0.1); color: #2979ff; border: 1px solid rgba(41, 121, 255, 0.2); }
+    
+    .header-section { margin-bottom: 3rem; }
+    .header-title { font-family: 'Space Grotesk'; font-size: 2.5rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem; }
+    .header-subtitle { color: rgba(255,255,255,0.5); }
+  </style>
 </head>
 <body data-page="workouts">
-<script>
-(function(){
-  try {
-    var u = JSON.parse(localStorage.getItem('fitmonCurrentUser')||'null');
-    if (!u) window.location.href = '/login.html';
-    else if (u.role === 'doctor') window.location.href = '/home.html';
-  } catch(e) { window.location.href = '/login.html'; }
-})();
-</script>
-  <header class="navbar">
-    <div class="navbar-inner">
-      <a href="/home.html" class="brand"><div class="brand-pill"></div><span>FitMon</span></a>
-      <nav class="nav-links">
-        <a href="/home.html">Home</a>
-        <a href="/profile.html">Profile</a>
-        <a href="/workouts.html" class="active">Workout</a>
-        <a href="/session.html">Session</a>
-        <a href="#" data-logout>Logout</a>
-      </nav>
-    </div>
-  </header>
 
-  <main class="page">
-    <div class="page-inner">
-
-      <!-- Header row -->
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
-        <div>
-          <h1 class="page-heading">Workout Feed</h1>
-          <p class="section-subtitle" style="margin-bottom:0;">
-            Exercises recommended for your level: <span id="workoutLevel" class="badge badge-green" style="margin-left:0.35rem;vertical-align:middle;">—</span>
-          </p>
+  <div class="app-container">
+    <nav class="sidebar">
+        <div class="logo">
+            <div class="logo-icon"></div>
+            <span>KENESIS</span>
         </div>
-        <div style="display:flex;align-items:center;gap:0.7rem;">
-          <button class="btn-ghost btn-sm" id="refreshWorkouts">&#8635; Refresh</button>
+        
+        <div class="nav-menu">
+            <a href="/home.html" class="nav-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="/session.html" class="nav-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polygon points="10 8 16 12 10 16 10 8"></polygon>
+                </svg>
+                <span>Live Session</span>
+            </a>
+            <a href="/workouts.html" class="nav-item active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+                <span>Library</span>
+            </a>
+            <a href="/profile.html" class="nav-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>Profile</span>
+            </a>
         </div>
-      </div>
 
-      <div id="workoutGrid" class="workout-grid">
-        <!-- skeleton fallback -->
-        <div class="workout-card" data-fallback="true">
-          <iframe src="https://www.youtube.com/embed/dj2NvQya_QA" title="Dynamic Warm-Up" allowfullscreen></iframe>
-          <div class="card-body">
-            <div class="section-title" style="font-size:0.95rem;">Dynamic Warm-Up</div>
-            <div class="workout-meta">
-              <span class="badge badge-blue">Beginner</span>
-              <span class="badge badge-gray">Full Body</span>
-              <span class="muted" style="font-size:0.78rem;">5–10 min</span>
+        <div class="user-profile">
+             <div class="user-avatar" id="navAvatar">U</div>
+             <div class="user-info">
+                 <div class="user-name" id="navName">User</div>
+                 <div class="user-role" id="navRole">Athlete</div>
+             </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header class="top-bar">
+            <div class="breadcrumbs">
+                <span>Library</span>
+                <span class="separator">/</span>
+                <span class="current">Training Hub</span>
             </div>
-          </div>
-        </div>
-        <div class="workout-card" data-fallback="true">
-          <iframe src="https://www.youtube.com/embed/ykJmrZ5v0Oo" title="Upper Body Strength" allowfullscreen></iframe>
-          <div class="card-body">
-            <div class="section-title" style="font-size:0.95rem;">Upper Body Strength</div>
-            <div class="workout-meta">
-              <span class="badge badge-yellow">Intermediate</span>
-              <span class="badge badge-gray">Upper Body</span>
+            <div class="top-bar-actions">
+                <button class="icon-btn" onclick="const g=document.getElementById('workoutGrid'); if(g) g.innerHTML='Loading...'; setTimeout(() => window.location.reload(), 500);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 4v6h-6"></path>
+                        <path d="M1 20v-6h6"></path>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                </button>
             </div>
-          </div>
-        </div>
-        <div class="workout-card" data-fallback="true">
-          <iframe src="https://www.youtube.com/embed/5FQURqekbVA" title="Knee Rehab" allowfullscreen></iframe>
-          <div class="card-body">
-            <div class="section-title" style="font-size:0.95rem;">Knee Rehabilitation</div>
-            <div class="workout-meta">
-              <span class="badge badge-green">Rehab</span>
-              <span class="badge badge-gray">Lower Body</span>
-            </div>
-          </div>
-        </div>
-        <div class="workout-card" data-fallback="true">
-          <iframe src="https://www.youtube.com/embed/IODxDxX7oi4" title="Core Workout" allowfullscreen></iframe>
-          <div class="card-body">
-            <div class="section-title" style="font-size:0.95rem;">Core Strength</div>
-            <div class="workout-meta">
-              <span class="badge badge-yellow">Intermediate</span>
-              <span class="badge badge-gray">Core</span>
-            </div>
-          </div>
-        </div>
-      </div>
+        </header>
 
-    </div>
-  </main>
+        <div style="padding: 2rem;">
+            <div class="header-section">
+                <h1 class="header-title">Training Library</h1>
+                <p class="header-subtitle">Curated recovery plans and strength protocols tailored to your recovery.</p>
+            </div>
 
-  <div class="toast-container" id="toastContainer"></div>
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+                <span class="filter-label">Filter:</span>
+                <button class="filter-chip active" onclick="filterWorkouts('all')">All</button>
+                <button class="filter-chip" onclick="filterWorkouts('Beginner')">Beginner</button>
+                <button class="filter-chip" onclick="filterWorkouts('Intermediate')">Intermediate</button>
+                <button class="filter-chip" onclick="filterWorkouts('Advanced')">Advanced</button>
+                <button class="filter-chip" onclick="filterWorkouts('Mobility')">Mobility</button>
+            </div>
+
+            <div id="workoutGrid" class="workout-grid">
+                <!-- Javascript will populate this, but here are static fallbacks in case JS fails or for static viewing -->
+                <div class="workout-card">
+                  <div class="video-wrapper"><iframe src="https://www.youtube.com/embed/dj2NvQya_QA" title="Dynamic Warm-Up" allowfullscreen></iframe></div>
+                  <div class="card-body">
+                    <div class="workout-title">Dynamic Warm-Up Protocol</div>
+                    <div class="workout-desc">Essential movement prep for all sessions. Focus on joint mobilization.</div>
+                    <div class="workout-meta"><span class="badge badge-green">Beginner</span><span class="badge badge-blue">Warmup</span></div>
+                  </div>
+                </div>
+
+                <div class="workout-card">
+                  <div class="video-wrapper"><iframe src="https://www.youtube.com/embed/cbKkB3POqaY" title="Core Stability" allowfullscreen></iframe></div>
+                  <div class="card-body">
+                    <div class="workout-title">Core Stability Foundations</div>
+                    <div class="workout-desc">Low impact core work designed for post-injury stabilization.</div>
+                    <div class="workout-meta"><span class="badge badge-green">Beginner</span></div>
+                  </div>
+                </div>
+
+                <div class="workout-card">
+                  <div class="video-wrapper"><iframe src="https://www.youtube.com/embed/aclHkVaku9U" title="Resistance Band" allowfullscreen></iframe></div>
+                  <div class="card-body">
+                    <div class="workout-title">Resistance Band Therapy</div>
+                    <div class="workout-desc">Rotator cuff and knee strengthening using light resistance.</div>
+                    <div class="workout-meta"><span class="badge badge-blue">Intermediate</span></div>
+                  </div>
+                </div>
+            </div>
+        </div>
+    </main>
+  </div>
+
   <script src="/app.js"></script>
   <script>
-    (function () {
-      function loadWorkouts() {
-        var grid = document.getElementById('workoutGrid');
-        var levelEl = document.getElementById('workoutLevel');
-        var rawUser = null;
-        try { rawUser = localStorage.getItem('fitmonCurrentUser'); } catch (e) {}
-        if (!rawUser) return;
-        var user;
-        try { user = JSON.parse(rawUser); } catch (e) { return; }
-        if (!user || !user.id) return;
+    // Inline script to handle role-based nav on this page too
+    document.addEventListener('DOMContentLoaded', () => {
+         const userStr = localStorage.getItem('fitmonCurrentUser');
+         if(userStr) {
+             const user = JSON.parse(userStr);
+             document.getElementById('navName').textContent = user.username;
+             document.getElementById('navAvatar').textContent = user.username.charAt(0).toUpperCase(); 
+             
+             // If doctor, maybe redirect or hide content? Access control
+             if(user.role === 'doctor') {
+                 document.getElementById('navRole').textContent = 'Coach';
+                 // Doctor shouldn't really be here, but if they are, show limited view or redirect
+                 // window.location.href = '/home.html'; // Optional
+             }
+         }
+    });
 
-        var goals = user.goals || '';
-        fetch('/workouts?userId=' + encodeURIComponent(user.id) + (goals ? '&goals=' + encodeURIComponent(goals) : ''))
-
-          .then(function (res) { return res.json(); })
-          .then(function (data) {
-            if (!data || !Array.isArray(data.workouts) || data.workouts.length === 0) return;
-
-            if (levelEl && data.level) {
-              levelEl.textContent = data.level.charAt(0).toUpperCase() + data.level.slice(1);
-              levelEl.className = 'badge ' + (data.level === 'advanced' ? 'badge-red' : data.level === 'intermediate' ? 'badge-yellow' : 'badge-green');
+    // Simple Filter Logic (client side for static items)
+    function filterWorkouts(category) {
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        const cards = document.querySelectorAll('.workout-card');
+        cards.forEach(card => {
+            if(category === 'all') {
+                card.style.display = 'flex';
+                return;
             }
-
-            grid.innerHTML = '';
-            data.workouts.forEach(function (w) {
-              var card = document.createElement('div');
-              card.className = 'workout-card';
-
-              var lvlCls = w.level === 'advanced' ? 'badge-red' : w.level === 'intermediate' ? 'badge-yellow' : 'badge-green';
-
-              card.innerHTML =
-                '<iframe src="' + (w.youtubeUrl || '') + '" title="' + (w.title || 'Workout') + '" allowfullscreen></iframe>' +
-                '<div class="card-body">' +
-                  '<div class="section-title" style="font-size:0.95rem;">' + (w.title || 'Workout') + '</div>' +
-                  '<div class="workout-meta">' +
-                    (w.level ? '<span class="badge ' + lvlCls + '">' + w.level + '</span>' : '') +
-                    (w.focusArea ? '<span class="badge badge-gray">' + w.focusArea + '</span>' : '') +
-                    (w.goalTag ? '<span class="muted" style="font-size:0.78rem;">' + w.goalTag + '</span>' : '') +
-                  '</div>' +
-                '</div>';
-              grid.appendChild(card);
+            const badges = card.querySelectorAll('.badge');
+            let match = false;
+            badges.forEach(b => {
+                if(b.textContent.includes(category)) match = true;
             });
-          })
-          .catch(function () { /* keep fallback */ });
-      }
-
-      document.addEventListener('DOMContentLoaded', function () {
-        loadWorkouts();
-        var btn = document.getElementById('refreshWorkouts');
-        if (btn) btn.addEventListener('click', function () { loadWorkouts(); });
-      });
-    })();
+            card.style.display = match ? 'flex' : 'none';
+        });
+    }
   </script>
 </body>
 </html>

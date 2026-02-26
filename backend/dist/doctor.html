@@ -1,582 +1,242 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FitMon – Doctor Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <link rel="stylesheet" href="/styles.css" />
-    <style>
-        /* ── Doctor Dashboard overrides (FitMon dark theme) ── */
-        body { background: radial-gradient(ellipse 80% 60% at 50% -10%, #0d2c1a 0%, #050816 42%, #000 100%); }
-
-        .dash-header {
-            text-align: center; color: var(--text-main);
-            padding: 1.5rem 0 1rem;
-        }
-        .dash-header h1 { font-size: 1.6rem; font-weight: 800; margin-bottom: 0.4rem; }
-        .status-indicator {
-            display: inline-block; width: 10px; height: 10px;
-            border-radius: 50%; margin-right: 6px; animation: pulse 2s infinite;
-        }
-        .status-indicator.connected { background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.6); }
-        .status-indicator.disconnected { background: #ef4444; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-
-        .dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem; margin-bottom: 1.5rem;
-        }
-
-        .dash-card {
-            background: linear-gradient(145deg, rgba(10,15,30,0.95), rgba(2,6,23,0.98));
-            border-radius: 1.25rem; padding: 1.25rem 1.35rem 1.4rem;
-            border: 1px solid rgba(148,163,184,0.12);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-            transition: border-color 0.18s ease;
-        }
-        .dash-card:hover { border-color: rgba(34,197,94,0.25); }
-
-        .dash-card h2 {
-            color: var(--text-muted); font-size: 0.8rem; font-weight: 600;
-            text-transform: uppercase; letter-spacing: 0.07em;
-            margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;
-        }
-        .stat-value {
-            font-size: 2.4rem; font-weight: 900; color: var(--accent);
-            line-height: 1; margin: 0.3rem 0;
-        }
-        .stat-label { color: var(--text-faint); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; }
-        .timestamp { color: var(--text-faint); font-size: 0.72rem; margin-top: 0.5rem; }
-
-        .chart-card {
-            background: linear-gradient(145deg, rgba(10,15,30,0.95), rgba(2,6,23,0.98));
-            border-radius: 1.25rem; padding: 1.25rem 1.35rem;
-            border: 1px solid rgba(148,163,184,0.12);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-            margin-bottom: 1.25rem;
-        }
-        .chart-card h2 { color: var(--text-muted); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 1rem; }
-        .chart-container { position: relative; height: 220px; }
-
-        .alert { padding: 0.75rem 1rem; border-radius: 0.85rem; margin-bottom: 0.75rem; font-size: 0.875rem; }
-        .alert { background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.25); color: #93c5fd; }
-        .alert.error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: #fca5a5; }
-        .alert.success { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); color: #86efac; }
-
-        .form-section {
-            background: linear-gradient(145deg, rgba(10,15,30,0.95), rgba(2,6,23,0.98));
-            border-radius: 1.25rem; padding: 1.5rem;
-            border: 1px solid rgba(148,163,184,0.12);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-            margin-bottom: 1.5rem;
-        }
-        .form-section h2 { color: var(--text-main); margin-bottom: 1.25rem; font-size: 1rem; font-weight: 700; }
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
-        .form-group { display: flex; flex-direction: column; }
-        .form-group label { color: var(--text-faint); font-weight: 600; margin-bottom: 0.35rem; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.06em; }
-        .form-group input, .form-group select, .form-group textarea {
-            padding: 0.6rem 0.8rem; border: 1px solid #1f2937;
-            border-radius: 0.75rem; font-size: 0.875rem;
-            background: rgba(15,23,42,0.9); color: var(--text-main);
-            transition: border-color 0.15s;
-        }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-            outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(34,197,94,0.12);
-        }
-        .form-group select option { background: #0f172a; }
-        .form-group textarea { resize: vertical; min-height: 56px; }
-
-        .btn {
-            background: linear-gradient(135deg, #22c55e, #4ade80);
-            color: #022c22; border: none; padding: 0.75rem 2rem; border-radius: 999px;
-            font-size: 1rem; font-weight: 700; cursor: pointer;
-            transition: all 0.2s; width: 100%; max-width: 280px;
-            margin: 1.25rem auto 0; display: block; box-shadow: 0 6px 24px rgba(34,197,94,0.35);
-        }
-        .btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
-        .btn:active { transform: translateY(0); }
-        .btn:disabled { background: #374151; color: #6b7280; cursor: not-allowed; transform: none; box-shadow: none; }
-
-        .report-section {
-            background: linear-gradient(145deg, rgba(10,15,30,0.95), rgba(2,6,23,0.98));
-            border-radius: 1.25rem; padding: 1.5rem;
-            border: 1px solid rgba(148,163,184,0.12);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-            margin-top: 1.5rem; display: none;
-        }
-        .report-section.active { display: block; }
-        .report-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 1.25rem; padding-bottom: 1rem;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-        }
-        .report-header h2 { color: var(--text-main); margin: 0; font-size: 1rem; font-weight: 700; }
-        .status-badge { padding: 0.3rem 0.85rem; border-radius: 999px; font-weight: 700; font-size: 0.75rem; }
-        .status-badge.achieved { background: rgba(34,197,94,0.15); color: #86efac; border: 1px solid rgba(34,197,94,0.3); }
-        .status-badge.progress { background: rgba(245,158,11,0.15); color: #fcd34d; border: 1px solid rgba(245,158,11,0.3); }
-        .status-badge.not-achieved { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
-        .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
-        .report-card { background: rgba(15,23,42,0.6); border-radius: 0.85rem; padding: 1rem; border-left: 3px solid var(--accent); }
-        .report-card h3 { color: var(--accent); margin: 0 0 0.6rem; font-size: 0.875rem; font-weight: 700; }
-        .report-card p { margin: 0.3rem 0; color: var(--text-soft); line-height: 1.6; font-size: 0.875rem; }
-        .report-card ul { margin: 0.5rem 0; padding-left: 1.1rem; }
-        .report-card li { margin: 0.4rem 0; color: var(--text-soft); font-size: 0.875rem; }
-        .plan-type-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.78rem; font-weight: 700; margin-right: 0.5rem; }
-        .plan-type-badge.strong { background: rgba(96,165,250,0.15); color: #93c5fd; }
-        .plan-type-badge.lazy { background: rgba(239,68,68,0.15); color: #fca5a5; }
-        .plan-type-badge.normal { background: rgba(34,197,94,0.15); color: #86efac; }
-        .loading { text-align: center; padding: 1.25rem; color: var(--text-muted); }
-        .loading::after { content: '…'; animation: ldots 1.5s steps(4) infinite; }
-        @keyframes ldots { 0%,20%{content:'.'} 40%{content:'..'} 60%,100%{content:'…'} }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FitMon - Coach Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .dashboard-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+    .dashboard-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; margin-bottom: 1.5rem; }
+    @media (max-width: 1024px) { .dashboard-grid-4 { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 768px) { .dashboard-grid-2 { grid-template-columns: 1fr; } .dashboard-grid-4 { grid-template-columns: 1fr; } }
+    
+    .metric-card {
+      background: rgba(12, 12, 12, 0.6); border: 1px solid var(--border-dim);
+      border-radius: var(--radius-xl); padding: 1.5rem; transition: var(--transition);
+      position: relative; overflow: hidden;
+    }
+    .metric-card:hover { border-color: var(--green-border); transform: translateY(-2px); box-shadow: var(--shadow-glow-green); }
+    .metric-card.blue:hover { border-color: var(--blue-border); box-shadow: 0 4px 20px rgba(41, 121, 255, 0.15); }
+    .metric-card.danger:hover { border-color: var(--danger-border); box-shadow: 0 4px 20px rgba(244, 67, 54, 0.15); }
+    
+    .metric-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+    .metric-val { font-size: 2.5rem; font-weight: 700; color: var(--text-primary); line-height: 1.1; font-family: "Space Grotesk", sans-serif; margin-bottom: 0.25rem; letter-spacing: -0.02em; }
+    .metric-val.green { color: var(--green-bright); text-shadow: 0 0 15px rgba(0, 230, 118, 0.3); }
+    .metric-val.blue { color: var(--blue-bright); text-shadow: 0 0 15px rgba(41, 121, 255, 0.3); }
+    .metric-val.purple { color: var(--purple-bright); text-shadow: 0 0 15px rgba(213, 0, 249, 0.3); }
+    
+    .chart-panel { background: rgba(12, 12, 12, 0.6); border: 1px solid var(--border-dim); border-radius: var(--radius-xl); padding: 1.5rem; position: relative; }
+    .chart-panel h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 1.25rem; font-weight: 700; }
+    .chart-container { position: relative; height: 220px; width: 100%; }
+    
+    .status-pill { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; border-radius: var(--radius-pill); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; border: 1px solid var(--border-dim); background: rgba(255, 255, 255, 0.03); color: var(--text-muted); backdrop-filter: blur(4px); }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-faint); transition: var(--transition); }
+    .status-dot.active { background: var(--green-bright); box-shadow: 0 0 8px var(--green-bright); animation: pulse-green 2s infinite; }
+    .status-dot.error { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+    @keyframes pulse-green { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    
+    .form-panel { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-xl); padding: 2rem; margin-bottom: 2rem; }
+    .form-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-dim); }
+    .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin-bottom: 1.5rem; }
+    @media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } }
+    
+    .input-group { display: flex; flex-direction: column; gap: 0.4rem; }
+    .input-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); font-weight: 700; }
+    .input-field { background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-dim); padding: 0.75rem 1rem; border-radius: var(--radius-md); color: var(--text-primary); font-family: "Inter", sans-serif; font-size: 0.9rem; transition: var(--transition); }
+    .input-field:focus { outline: none; border-color: var(--blue-bright); box-shadow: 0 0 0 2px rgba(41, 121, 255, 0.1); }
+    
+    .report-panel { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-xl); padding: 2.5rem; margin-top: 2rem; position: relative; overflow: hidden; display: none; }
+    .report-panel.active { display: block; animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .posture-alert-container { position: fixed; bottom: 2rem; right: 2rem; z-index: 1000; display: flex; flex-direction: column; gap: 0.75rem; }
+    .posture-alert { background: rgba(244, 67, 54, 0.9); backdrop-filter: blur(10px); color: white; padding: 1rem 1.5rem; border-radius: var(--radius-lg); font-weight: 600; font-size: 0.9rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1); display: flex; align-items: center; gap: 0.75rem; border: 1px solid rgba(255,255,255,0.2); }
+    @keyframes slideInRight { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
+  </style>
 </head>
-<body>
-    <!-- FitMon Navbar -->
-    <header class="navbar">
-        <div class="navbar-inner">
-            <a href="/home.html" class="brand"><div class="brand-pill"></div><span>FitMon</span></a>
-            <nav class="nav-links">
-                <a href="/home.html">Home</a>
-                <a href="/profile.html">Profile</a>
-                <a href="/workouts.html">Workout</a>
-                <a href="/session.html" class="active">Session</a>
-                <a href="#" onclick="localStorage.removeItem('fitmonCurrentUser');window.location.href='/login.html';return false;">Logout</a>
-            </nav>
+<body data-page="doctor">
+  
+  <div class="app-container">
+    <nav class="sidebar">
+        <div class="logo">
+            <div class="logo-icon"></div>
+            <span>KENESIS</span>
         </div>
-    </header>
-
-    <div class="page">
-      <div class="page-inner">
-
-        <!-- Header -->
-        <div class="dash-header">
-            <h1>&#128104;&#8205;&#9877;&#65039; Doctor Dashboard</h1>
-            <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;margin-top:.5rem;">
-                <p style="font-size:0.875rem;color:var(--text-muted);margin:0;">
-                    <span class="status-indicator" id="statusIndicator"></span>
-                    <span id="connectionStatus">Connecting…</span>
-                </p>
-                <p style="font-size:0.875rem;margin:0;" id="patientStatusWrap">
-                    <span id="patientDot" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#6b7280;margin-right:5px;vertical-align:middle;"></span>
-                    <span id="patientStatus" style="color:var(--text-muted);">Waiting for patient…</span>
-                </p>
-                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;" id="sessionCodeDisplay"></p>
-            </div>
-        </div>
-
-        <div id="alerts"></div>
-
-        <!-- Stat Cards -->
-        <div class="dashboard">
-            <div class="dash-card">
-                <h2>&#128202; Total Reps</h2>
-                <div class="stat-value" id="repCount">0</div>
-                <div class="stat-label">Bicep Curls Completed</div>
-                <div class="timestamp" id="repTimestamp">No data yet</div>
-            </div>
-            <div class="dash-card">
-                <h2>&#9989; Form Accuracy</h2>
-                <div class="stat-value" id="formAccuracy">0%</div>
-                <div class="stat-label">Exercise Form Score</div>
-                <div class="timestamp" id="formTimestamp">No data yet</div>
-            </div>
-            <div class="dash-card">
-                <h2>&#128170; Muscle Activation</h2>
-                <div class="stat-value" id="sensorValue">0</div>
-                <div class="stat-label">FSR Sensor Reading</div>
-                <div class="timestamp" id="sensorTimestamp">No data yet</div>
-            </div>
-            <div class="dash-card">
-                <h2>&#128147; Pulse Rate</h2>
-                <div class="stat-value" id="pulseValue" style="color:#f87171;">0</div>
-                <div class="stat-label">Heart Rate (bpm)</div>
-                <div class="timestamp" id="pulseTimestamp">No data yet</div>
-            </div>
+        
+        <div class="nav-menu">
+            <a href="/home.html" class="nav-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="/session.html" class="nav-item active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polygon points="10 8 16 12 10 16 10 8"></polygon>
+                </svg>
+                <span>Live Session</span>
+            </a>
+            <a href="/profile.html" class="nav-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>Profile</span>
+            </a>
         </div>
 
-        <!-- FSR Chart -->
-        <div class="chart-card">
-            <h2>&#128200; Real-Time FSR Sensor Data</h2>
-            <div class="chart-container"><canvas id="sensorChart"></canvas></div>
+        <div class="user-profile">
+             <div class="user-avatar" id="navAvatar">U</div>
+             <div class="user-info">
+                 <div class="user-name" id="navName">Coach</div>
+                 <div class="user-role" id="navRole">Consultant</div>
+             </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+      <header class="top-bar">
+          <div class="breadcrumbs">
+              <span>Session</span>
+              <span class="separator">/</span>
+              <span class="current">Live Console</span>
+          </div>
+          <div class="top-bar-actions">
+              <div class="status-indicator online">
+                  <div class="status-dot"></div>
+                  <span>System Online</span>
+              </div>
+          </div>
+      </header>
+  
+      <div style="padding: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <div class="eyebrow eyebrow-blue" style="margin-bottom: 0.5rem;">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M21 12V7H5v5l8 6 8-6zm-9 7.8l-9-6.9V21h18v-8.1l-9 6.9z" fill="currentColor"/></svg>
+              Live Monitoring Console
+            </div>
+            <h1 class="page-heading">Coach Dashboard</h1>
+            <p class="text-muted" style="margin-top: 0.25rem; font-size: 0.9rem;" id="sessionCodeDisplay">Initializing session...</p>
+          </div>
+          <div style="display: flex; gap: 0.75rem;">
+            <div class="status-pill"><span class="status-dot" id="patientDot"></span><span id="patientStatus">Athlete Offline</span></div>
+            <div class="status-pill"><span class="status-dot" id="statusIndicator"></span><span id="connectionStatus">Disconnected</span></div>
+          </div>
         </div>
 
-        <!-- Pulse Chart -->
-        <div class="chart-card">
-            <h2>&#128147; Real-Time Pulse Rate</h2>
+        <div class="dashboard-grid-4">
+          <div class="metric-card blue">
+            <div class="metric-label"><svg class="icon" viewBox="0 0 24 24"><path d="M4 6h16v2H4zm2 4h12v2H6zm-2 4h16v2H4zm2 4h12v2H6z" fill="currentColor"/></svg>Total Reps</div>
+            <div class="metric-val blue" id="repCount">0</div>
+            <div class="text-faint" style="font-size: 0.8rem;">Session Total</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label"><svg class="icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="currentColor"/></svg>Form Score</div>
+            <div class="metric-val green" id="formAccuracy">0%</div>
+            <div class="text-faint" style="font-size: 0.8rem;">AI Analysis</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label"><svg class="icon" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="currentColor"/></svg>Muscle EMG</div>
+            <div class="metric-val purple" id="sensorValue">0%</div>
+            <div class="text-faint" style="font-size: 0.8rem;">Live Sensor Data</div>
+          </div>
+          <div class="metric-card danger">
+            <div class="metric-label"><svg class="icon" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor"/></svg>Heart Rate</div>
+            <div class="metric-val" style="color: #f87171;" id="pulseValue">--</div>
+            <div class="text-faint" style="font-size: 0.8rem;">BPM</div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid-2">
+          <div class="chart-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+              <h3 style="margin:0">Form Consistency</h3>
+              <svg class="icon" style="opacity:0.5" viewBox="0 0 24 24"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z" fill="currentColor"/></svg>
+            </div>
+            <div class="chart-container"><canvas id="liveChart"></canvas></div>
+          </div>
+          <div class="chart-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+              <h3 style="margin:0">Heart Rate Variability</h3>
+              <svg class="icon" style="opacity:0.5" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" fill="currentColor"/></svg>
+            </div>
             <div class="chart-container"><canvas id="pulseChart"></canvas></div>
+          </div>
         </div>
 
-        <!-- Report Form -->
-        <div class="form-section">
-            <h2>&#128203; Generate Session Report</h2>
-            <form id="sessionReportForm">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="height">Height (cm)</label>
-                        <input type="number" id="height" name="height" required min="50" max="250" step="0.1" placeholder="172">
-                    </div>
-                    <div class="form-group">
-                        <label for="weight">Weight (kg)</label>
-                        <input type="number" id="weight" name="weight" required min="20" max="300" step="0.1" placeholder="72">
-                    </div>
-                    <div class="form-group">
-                        <label for="bmi">BMI</label>
-                        <input type="number" id="bmi" name="bmi" required min="10" max="50" step="0.1" placeholder="24.3">
-                    </div>
-                    <div class="form-group">
-                        <label for="fitness_experience">Fitness Experience</label>
-                        <select id="fitness_experience" name="fitness_experience" required>
-                            <option value="">Select level</option>
-                            <option value="beginner">Beginner</option>
-                            <option value="intermediate">Intermediate</option>
-                            <option value="advanced">Advanced</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="therapy_cause">Therapy Cause</label>
-                        <input type="text" id="therapy_cause" name="therapy_cause" required placeholder="Post ACL recovery">
-                    </div>
-                    <div class="form-group">
-                        <label for="goal">Session Goal</label>
-                        <input type="text" id="goal" name="goal" required placeholder="Achieve 80 degree knee flexion">
-                    </div>
-                    <div class="form-group">
-                        <label for="accuracy_rate">Accuracy Rate (%)</label>
-                        <input type="number" id="accuracy_rate" name="accuracy_rate" required min="0" max="100" step="0.1" placeholder="78">
-                    </div>
-                    <div class="form-group">
-                        <label for="activation_rate">Activation Rate (%)</label>
-                        <input type="number" id="activation_rate" name="activation_rate" required min="0" max="100" step="0.1" placeholder="66">
-                    </div>
-                    <div class="form-group">
-                        <label for="pulse_rate">Pulse Rate (bpm)</label>
-                        <input type="number" id="pulse_rate" name="pulse_rate" required min="30" max="220" step="1" placeholder="72">
-                    </div>
-                </div>
-                <button type="submit" class="btn" id="generateBtn">&#129302; Generate AI Report</button>
-            </form>
-            <div id="loadingIndicator" class="loading" style="display: none;">Generating report</div>
-        </div>
-
-        <!-- Report Display -->
-        <div class="report-section" id="reportSection">
-            <div class="report-header">
-                <h2>&#128202; Session Report</h2>
-                <span class="status-badge" id="goalStatusBadge"></span>
+        <div class="form-panel">
+          <div class="form-header">
+            <svg class="icon" style="color: var(--blue-bright);" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" fill="currentColor"/></svg>
+            <h2 style="font-size: 1.1rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif;">Generate Session Report</h2>
+          </div>
+          <form id="sessionReportForm">
+            <div class="form-grid">
+              <div class="input-group"><label class="input-label">Height (cm)</label><input type="number" class="input-field" name="height" id="height" placeholder="e.g. 180" step="0.1" required></div>
+              <div class="input-group"><label class="input-label">Weight (kg)</label><input type="number" class="input-field" name="weight" id="weight" placeholder="e.g. 75" step="0.1" required></div>
+              <div class="input-group"><label class="input-label">BMI</label><input type="number" class="input-field" name="bmi" id="bmi" placeholder="Calc. automatically" step="0.1" readonly></div>
             </div>
-            <div id="reportContent"></div>
+            <div class="form-grid">
+              <div class="input-group"><label class="input-label">Experience Level</label><select class="input-field" name="fitness_experience" id="fitness_experience" required><option value="" disabled selected>Select level...</option><option value="Beginner">Beginner</option><option value="Intermediate">Intermediate</option><option value="Advanced">Advanced</option><option value="Athlete">Professional Athlete</option></select></div>
+              <div class="input-group"><label class="input-label">Therapy Reason</label><select class="input-field" name="therapy_cause" id="therapy_cause" required><option value="" disabled selected>Select cause...</option><option value="Injury Rehab">Injury Rehabilitation</option><option value="Post-Surgery">Post-Surgery Recovery</option><option value="Strength Training">Strength Training</option><option value="Mobility Improvement">Mobility Improvement</option><option value="Chronic Pain Management">Chronic Pain Management</option></select></div>
+              <div class="input-group"><label class="input-label">Session Goal</label><select class="input-field" name="goal" id="goal" required><option value="" disabled selected>Select goal...</option><option value="Increase ROM">Increase Range of Motion</option><option value="Build Strength">Build Strength</option><option value="Pain Reduction">Pain Reduction</option><option value="Endurance">Improve Endurance</option></select></div>
+            </div>
+            <input type="hidden" name="accuracy_rate" id="accuracy_rate">
+            <input type="hidden" name="activation_rate" id="activation_rate">
+            <input type="hidden" name="pulse_rate" id="pulse_rate">
+            <div style="display: flex; gap: 1rem; align-items: center;">
+              <button type="submit" id="generateBtn" class="btn-primary" style="padding: 0.85rem 1.5rem;"><svg class="icon" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" fill="currentColor"/></svg>Generate Report</button>
+              <div id="loadingIndicator" style="display:none; color: var(--text-muted); font-size: 0.9rem;"><span style="display: flex; align-items: center; gap: 0.5rem;"><svg class="icon" style="animation: spin 1s linear infinite" viewBox="0 0 24 24"><path d="M12 4V2C6.48 2 2 6.48 2 12h2c0-4.41 3.59-8 8-8zm0 14c4.41 0 8-3.59 8-8h-2c0 3.31-2.69 6-6 6v2zm-6-2.5l2.5-2.5-1.41-1.41L4.59 14 7 16.41zm0-3.59L4.59 10 7 7.59 8.41 9l-2.41 2.41zm12.91-5.5L17.5 7.59l2.41-2.41L18.5 3.5l-2.5 2.5z" fill="currentColor"/></svg>Processing session data...</span></div>
+            </div>
+          </form>
         </div>
 
+        <div class="report-panel" id="reportSection">
+          <div class="report-header">
+            <h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif;">Session Analysis Report</h2>
+            <span id="goalStatusBadge" class="report-status">PENDING</span>
+          </div>
+          <div id="reportContent"></div>
+        </div>
       </div>
-    </div>
-
-    <div class="toast-container" id="toastContainer"></div>
-
-    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
-    <script>
-        const API_URL = window.location.origin;
-        let socket = null;
-        let repCount = 0;
-        let formAccuracy = 0;
-        let sensorValue = 0;
-        let pulseValue = 0;
-        let sensorChart = null;
-        let pulseChart = null;
-        let sensorData = [];
-        let sensorLabels = [];
-        let pulseData = [];
-        let pulseLabels = [];
-        const maxDataPoints = 50;
-
-        const statusIndicator = document.getElementById('statusIndicator');
-        const connectionStatus = document.getElementById('connectionStatus');
-        const repCountEl = document.getElementById('repCount');
-        const formAccuracyEl = document.getElementById('formAccuracy');
-        const sensorValueEl = document.getElementById('sensorValue');
-        const pulseValueEl = document.getElementById('pulseValue');
-        const repTimestampEl = document.getElementById('repTimestamp');
-        const formTimestampEl = document.getElementById('formTimestamp');
-        const sensorTimestampEl = document.getElementById('sensorTimestamp');
-        const pulseTimestampEl = document.getElementById('pulseTimestamp');
-        const alertsEl = document.getElementById('alerts');
-
-        function initChart() {
-            const ctx = document.getElementById('sensorChart').getContext('2d');
-            sensorChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: sensorLabels,
-                    datasets: [{
-                        label: 'FSR Sensor Reading',
-                        data: sensorData,
-                        borderColor: '#22c55e',
-                        backgroundColor: 'rgba(34,197,94,0.08)',
-                        borderWidth: 2, fill: true, tension: 0.4,
-                        pointRadius: 0, pointHoverRadius: 5,
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' }, title: { display: true, text: 'Sensor Value', color: '#9ca3af' } },
-                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' }, title: { display: true, text: 'Time', color: '#9ca3af' } }
-                    },
-                    plugins: { legend: { display: true, labels: { color: '#9ca3af' } }, tooltip: { mode: 'index', intersect: false } },
-                    animation: { duration: 0 }
-                }
-            });
+    </main>
+  </div>
+  
+  <div class="toast-container" id="toastContainer"></div>
+  <div class="posture-alert-container" id="postureAlertContainer"></div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+  <script>
+    // Inline socket logic wrapper for doctor specific things
+    document.addEventListener('DOMContentLoaded', () => {
+        const userStr = localStorage.getItem('fitmonCurrentUser');
+        let userName = 'Consultant';
+        if(userStr) {
+            const user = JSON.parse(userStr);
+            userName = user.username;
+            document.getElementById('navName').textContent = userName;
+            document.getElementById('navAvatar').textContent = userName.charAt(0).toUpperCase();
         }
+    });
 
-        function initPulseChart() {
-            const ctx = document.getElementById('pulseChart').getContext('2d');
-            pulseChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: pulseLabels,
-                    datasets: [{
-                        label: 'Pulse (bpm)',
-                        data: pulseData,
-                        borderColor: '#ef4444',
-                        backgroundColor: 'rgba(239,68,68,0.08)',
-                        borderWidth: 2, fill: true, tension: 0.4,
-                        pointRadius: 0, pointHoverRadius: 5,
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: false, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' }, title: { display: true, text: 'Pulse (bpm)', color: '#9ca3af' } },
-                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' }, title: { display: true, text: 'Time', color: '#9ca3af' } }
-                    },
-                    plugins: { legend: { display: true, labels: { color: '#9ca3af' } }, tooltip: { mode: 'index', intersect: false } },
-                    animation: { duration: 0 }
-                }
-            });
-        }
-
-        function addSensorDataPoint(value, timestamp) {
-            const time = new Date(timestamp).toLocaleTimeString();
-            sensorData.push(value); sensorLabels.push(time);
-            if (sensorData.length > maxDataPoints) { sensorData.shift(); sensorLabels.shift(); }
-            sensorChart.update('none');
-        }
-
-        function addPulseDataPoint(value, timestamp) {
-            const time = new Date(timestamp).toLocaleTimeString();
-            pulseData.push(value); pulseLabels.push(time);
-            if (pulseData.length > maxDataPoints) { pulseData.shift(); pulseLabels.shift(); }
-            if (pulseChart) pulseChart.update('none');
-        }
-
-        function updateRepCount(count, timestamp) {
-            repCount = count; repCountEl.textContent = count;
-            repTimestampEl.textContent = `Last updated: ${new Date(timestamp).toLocaleTimeString()}`;
-        }
-
-        function updateFormAccuracy(accuracy, timestamp) {
-            formAccuracy = accuracy; formAccuracyEl.textContent = accuracy + '%';
-            formTimestampEl.textContent = `Last updated: ${new Date(timestamp).toLocaleTimeString()}`;
-            if (accuracy >= 80) formAccuracyEl.style.color = '#22c55e';
-            else if (accuracy >= 60) formAccuracyEl.style.color = '#f59e0b';
-            else formAccuracyEl.style.color = '#ef4444';
-        }
-
-        function updateSensorValue(value, timestamp) {
-            sensorValue = value;
-            sensorValueEl.textContent = value.toFixed(2);
-            sensorTimestampEl.textContent = `Last updated: ${new Date(timestamp).toLocaleTimeString()}`;
-            addSensorDataPoint(value, timestamp);
-        }
-
-        function updatePulseValue(value, timestamp) {
-            pulseValue = value;
-            pulseValueEl.textContent = value.toFixed(0);
-            pulseTimestampEl.textContent = `Last updated: ${new Date(timestamp).toLocaleTimeString()}`;
-            addPulseDataPoint(value, timestamp);
-        }
-
-        function showAlert(message, type = 'info') {
-            const alert = document.createElement('div');
-            alert.className = `alert ${type}`;
-            alert.textContent = message;
-            alertsEl.appendChild(alert);
-            setTimeout(() => alert.remove(), 5000);
-        }
-
-        function joinRoom() {
-            try {
-                const code = localStorage.getItem('fitmonSessionCode') || '';
-                const codeEl = document.getElementById('sessionCodeDisplay');
-                if (codeEl && code) codeEl.textContent = 'Session: ' + code;
-                if (code && socket) {
-                    socket.emit('join-session', { code, role: 'doctor' });
-                    console.log('Joined room session-' + code);
-                }
-            } catch(e) {}
-        }
-
-        function connectWebSocket() {
-            socket = io(API_URL, {
-                transports: ['websocket', 'polling'],
-                reconnection: true, reconnectionDelay: 1000, reconnectionAttempts: 5,
-            });
-            socket.on('connect', () => {
-                statusIndicator.className = 'status-indicator connected';
-                connectionStatus.textContent = 'Server connected';
-                joinRoom();
-                showAlert('Connected to session server', 'success');
-            });
-            socket.on('disconnect', () => {
-                statusIndicator.className = 'status-indicator disconnected';
-                connectionStatus.textContent = 'Disconnected';
-                showAlert('Connection lost. Attempting to reconnect...', 'error');
-            });
-            socket.on('connect_error', () => {
-                statusIndicator.className = 'status-indicator disconnected';
-                connectionStatus.textContent = 'Connection Error';
-            });
-            // Patient joined the same session room
-            socket.on('peer-joined', (data) => {
-                const dot = document.getElementById('patientDot');
-                const status = document.getElementById('patientStatus');
-                if (dot) dot.style.background = '#22c55e';
-                if (status) status.textContent = 'Patient connected';
-                if (status) status.style.color = '#4ade80';
-                showAlert('Patient has joined the session', 'success');
-            });
-            socket.on('peer-left', () => {
-                const dot = document.getElementById('patientDot');
-                const status = document.getElementById('patientStatus');
-                if (dot) dot.style.background = '#ef4444';
-                if (status) status.textContent = 'Patient disconnected';
-                if (status) status.style.color = '#ef4444';
-                showAlert('Patient left the session', 'error');
-            });
-            socket.on('cv-update', (data) => {
-                updateRepCount(data.reps, data.timestamp);
-                updateFormAccuracy(data.formAccuracy, data.timestamp);
-            });
-            socket.on('sensor-data', (data) => {
-                if (typeof data.value === 'number') updateSensorValue(data.value, data.timestamp);
-                if (typeof data.pulse === 'number') updatePulseValue(data.pulse, data.timestamp || Date.now());
-            });
-        }
-
-        function calculateBMI() {
-            const height = parseFloat(document.getElementById('height').value);
-            const weight = parseFloat(document.getElementById('weight').value);
-            if (height && weight && height > 0 && weight > 0) {
-                document.getElementById('bmi').value = (weight / ((height / 100) ** 2)).toFixed(1);
-            }
-        }
-        document.getElementById('height').addEventListener('input', calculateBMI);
-        document.getElementById('weight').addEventListener('input', calculateBMI);
-
-        function populateIoTData() {
-            if (formAccuracy > 0) document.getElementById('accuracy_rate').value = formAccuracy.toFixed(1);
-            if (sensorValue > 0) document.getElementById('activation_rate').value = (sensorValue / 4095 * 100).toFixed(1);
-            if (pulseValue > 0) document.getElementById('pulse_rate').value = pulseValue.toFixed(0);
-        }
-
-        async function generateReport(event) {
-            event.preventDefault();
-            const form = document.getElementById('sessionReportForm');
-            const formData = new FormData(form);
-            const data = {
-                height: parseFloat(formData.get('height')),
-                weight: parseFloat(formData.get('weight')),
-                bmi: parseFloat(formData.get('bmi')),
-                fitness_experience: formData.get('fitness_experience'),
-                therapy_cause: formData.get('therapy_cause'),
-                goal: formData.get('goal'),
-                accuracy_rate: parseFloat(formData.get('accuracy_rate')),
-                activation_rate: parseFloat(formData.get('activation_rate')),
-                pulse_rate: parseFloat(formData.get('pulse_rate')),
-                sessionId: (() => { try { return localStorage.getItem('fitmonSessionId') || null; } catch(e) { return null; } })(),
-            };
-            if (!data.height || !data.weight || !data.bmi || !data.fitness_experience ||
-                !data.therapy_cause || !data.goal ||
-                isNaN(data.accuracy_rate) || isNaN(data.activation_rate) || isNaN(data.pulse_rate)) {
-                showAlert('Please fill in all fields', 'error'); return;
-            }
-            const generateBtn = document.getElementById('generateBtn');
-            const loadingIndicator = document.getElementById('loadingIndicator');
-            const reportSection = document.getElementById('reportSection');
-            generateBtn.disabled = true;
-            loadingIndicator.style.display = 'block';
-            reportSection.classList.remove('active');
-            try {
-                const response = await fetch(`${API_URL}/session/generate-report`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
-                });
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-                    throw new Error(errorData.error || errorData.message || `Server error: ${response.status}`);
-                }
-                const report = await response.json();
-                displayReport(report);
-                showAlert('Session report generated successfully', 'success');
-            } catch (error) {
-                showAlert(`Failed to generate report: ${error?.message || 'Unknown error'}`, 'error');
-            } finally {
-                generateBtn.disabled = false;
-                loadingIndicator.style.display = 'none';
-            }
-        }
-
-        function displayReport(report) {
-            let rec = report?.recommendations;
-            if (typeof rec === "string") rec = { immediate_actions: [rec], short_term_goals: [], long_term_goals: [], lifestyle_modifications: [] };
-            if (!rec || typeof rec !== "object") rec = { immediate_actions: [], short_term_goals: [], long_term_goals: [], lifestyle_modifications: [] };
-            report.recommendations = rec;
-            const reportSection = document.getElementById('reportSection');
-            const reportContent = document.getElementById('reportContent');
-            const goalStatusBadge = document.getElementById('goalStatusBadge');
-            goalStatusBadge.textContent = report.goal_status.toUpperCase();
-            goalStatusBadge.className = `status-badge ${report.goal_status.replace(' ', '-')}`;
-            reportContent.innerHTML = `
-                <div class="report-grid">
-                    <div class="report-card"><h3>Summary</h3><p>${report.summary}</p></div>
-                    <div class="report-card"><h3>Metrics Analysis</h3>
-                        <p><strong>Accuracy:</strong> ${report.metrics_analysis.accuracy_rate}%</p>
-                        <p><strong>Activation:</strong> ${report.metrics_analysis.activation_rate}%</p>
-                        <p><strong>Insight:</strong> ${report.metrics_analysis.insight}</p>
-                    </div>
-                    <div class="report-card"><h3>Patient Factors</h3>
-                        <p><strong>Height:</strong> ${report.patient_factors.height} cm</p>
-                        <p><strong>Weight:</strong> ${report.patient_factors.weight} kg</p>
-                        <p><strong>BMI:</strong> ${report.patient_factors.bmi}</p>
-                        <p><strong>Fitness:</strong> ${report.patient_factors.fitness_experience}</p>
-                        <p><strong>Cause:</strong> ${report.patient_factors.cause}</p>
-                    </div>
-                    <div class="report-card"><h3>Adaptive Plan</h3>
-                        <p><span class="plan-type-badge ${report.adaptive_plan.type}">${report.adaptive_plan.type.toUpperCase()}</span></p>
-                        <p><strong>Action:</strong> ${report.adaptive_plan.action}</p>
-                    </div>
-                </div>
-                <div class="report-card" style="margin-top:1rem;">
-                    <h3>Recommendations</h3>
-                    <ul>
-                        <li><strong>Immediate Actions:</strong><ul>${(rec.immediate_actions||[]).map(i=>`<li>${i}</li>`).join('')}</ul></li>
-                        <li><strong>Short-Term Goals:</strong><ul>${(rec.short_term_goals||[]).map(i=>`<li>${i}</li>`).join('')}</ul></li>
-                        <li><strong>Long-Term Goals:</strong><ul>${(rec.long_term_goals||[]).map(i=>`<li>${i}</li>`).join('')}</ul></li>
-                        <li><strong>Lifestyle Modifications:</strong><ul>${(rec.lifestyle_modifications||[]).map(i=>`<li>${i}</li>`).join('')}</ul></li>
-                    </ul>
-                </div>`;
-            reportSection.classList.add('active');
-            reportSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-
-        function init() {
-            initChart(); initPulseChart(); connectWebSocket();
-            document.getElementById('sessionReportForm').addEventListener('submit', generateReport);
-            showAlert('Initializing connection to patient monitoring system...', 'info');
-            setInterval(populateIoTData, 5000);
-            populateIoTData();
-        }
-        init();
-    </script>
+    // BMI Calculation
+    const bh = document.getElementById('height');
+    const bw = document.getElementById('weight');
+    const bb = document.getElementById('bmi');
+    function calcBmi() {
+        const h = parseFloat(bh.value)/100;
+        const w = parseFloat(bw.value);
+        if(h>0 && w>0) bb.value = (w/(h*h)).toFixed(1);
+    }
+    if(bh && bw) {
+        bh.addEventListener('input', calcBmi);
+        bw.addEventListener('input', calcBmi);
+    }
+  </script>
 </body>
 </html>

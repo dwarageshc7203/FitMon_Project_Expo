@@ -1,110 +1,125 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>FitMon – Sign up</title>
+  <title>Kenesis � Sign Up</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    .auth-wrap { display: grid; grid-template-columns: 1fr 1fr; min-height: calc(100vh - 60px); }
-    .auth-side {
-      background: linear-gradient(160deg, #0d2c1a 0%, #050816 60%);
-      display: flex; flex-direction: column; justify-content: center;
-      padding: 3rem; border-right: 1px solid rgba(34,197,94,0.1);
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: -1;
+      background: radial-gradient(circle at 20% 50%, rgba(0, 230, 118, 0.08) 0%, transparent 50%),
+                  radial-gradient(circle at 80% 80%, rgba(41, 121, 255, 0.08) 0%, transparent 50%),
+                  #030303;
     }
-    .auth-side-title { font-size: 2rem; font-weight: 900; margin-bottom: 0.75rem; }
-    .auth-side-sub { color: var(--text-muted); font-size: 0.9rem; line-height: 1.7; max-width: 26rem; }
-    .auth-side-bullets { list-style: none; margin-top: 1.75rem; display: flex; flex-direction: column; gap: 0.8rem; }
-    .auth-side-bullets li { display: flex; align-items: center; gap: 0.65rem; font-size: 0.875rem; color: var(--text-soft); }
-    .auth-side-bullets li::before { content: "✓"; color: var(--accent); font-weight: 700; }
-    .auth-form-wrap { display: flex; flex-direction: column; justify-content: center; padding: 3rem; overflow-y: auto; }
-    .role-options { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.4rem; }
-    .role-option { position: relative; }
-    .role-option input[type="radio"] { position: absolute; opacity: 0; }
-    .role-option label {
-      display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
-      padding: 0.9rem 0.75rem; border-radius: var(--radius-md);
-      border: 1px solid var(--border-subtle); cursor: pointer;
-      transition: var(--transition); text-align: center; font-size: 0.875rem;
+    .auth-page{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem;position:relative;}
+    .auth-card{
+      width:100%;max-width:500px;background:rgba(12, 12, 12, 0.8);border:1px solid rgba(255, 255, 255, 0.08);
+      padding:3rem;border-radius:24px;backdrop-filter:blur(24px);box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      position: relative; overflow: hidden;
     }
-    .role-option input:checked + label { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
-    .role-option label:hover { border-color: var(--border-dim); }
-    .role-icon { font-size: 1.4rem; }
-    @media (max-width: 700px) { .auth-wrap { grid-template-columns: 1fr; } .auth-side { display: none; } }
+    .auth-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 230, 118, 0.5), transparent);
+    }
+    .auth-brand{justify-content:center;margin-bottom:2.5rem;font-size:1.4rem;}
+    .auth-head{text-align:center;margin-bottom:2rem;}
+    .auth-title{font-size:1.75rem;font-weight:700;margin-bottom:0.75rem;font-family: 'Space Grotesk', sans-serif;}
+    .auth-sub{color:var(--text-muted);font-size:0.95rem;}
+    
+    .role-toggle{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem;}
+    .role-btn{
+      padding:1rem;background:var(--bg-layer1);border:1px solid var(--border-subtle);
+      border-radius:8px;text-align:center;cursor:pointer;transition:all 0.2s;
+      color:var(--text-muted);
+    }
+    .role-btn:hover{border-color:var(--text-soft);color:var(--text-primary);}
+    .role-btn.active{background:var(--green-soft);border-color:var(--green);color:var(--green);}
+    .role-btn.active.blue{background:var(--blue-soft);border-color:var(--blue);color:var(--blue);}
+    
+    .role-icon{width:24px;height:24px;margin:0 auto 0.5rem;display:block;}
+    .role-lbl{font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;}
+
+    .auth-foot{text-align:center;margin-top:2rem;font-size:0.9rem;color:var(--text-muted);}
+    .auth-foot a{color:var(--green-bright);font-weight:600;transition: color 0.2s;}
+    .auth-foot a:hover{color: #fff;}
   </style>
 </head>
 <body data-page="signup">
-  <header class="navbar">
-    <div class="navbar-inner">
-      <a href="/index.html" class="brand"><div class="brand-pill"></div><span>FitMon</span></a>
-      <nav class="nav-links">
-        <a href="/login.html">Login</a>
-        <a href="/signup.html" class="active">Sign up</a>
-      </nav>
-    </div>
-  </header>
+  <div class="auth-page">
+    <div class="auth-card">
+      <a href="/index.html" class="brand auth-brand">
+        <div class="brand-pill"></div>
+        <span>Kenesis</span>
+      </a>
 
-  <div class="auth-wrap">
-    <div class="auth-side">
-      <div class="hero-eyebrow" style="margin-bottom:1rem;">&#127939; Join FitMon</div>
-      <h2 class="auth-side-title">Start your<br /><span class="gradient-text">fitness journey</span></h2>
-      <p class="auth-side-sub">Create your account and connect with doctors or track your own fitness progress using AI-powered analytics.</p>
-      <ul class="auth-side-bullets">
-        <li>Doctor: generate meeting codes and monitor patients live</li>
-        <li>Fitness enthusiast: get personalized workouts and track progress</li>
-        <li>Both roles: full session history and AI reports</li>
-      </ul>
-    </div>
+      <div class="auth-head">
+        <h1 class="auth-title">Create Account</h1>
+        <p class="auth-sub">Start monitoring performance today</p>
+      </div>
 
-    <div class="auth-form-wrap">
-      <div class="form-card" style="max-width:420px;">
-        <h1 class="form-title">Create account</h1>
-        <p class="form-subtitle">You can add health details like height, weight, and goals on your Profile page after signing up.</p>
+      <div class="role-toggle">
+        <button type="button" class="role-btn active blue" id="roleCoach" onclick="setRole('doctor')">
+          <svg class="role-icon icon" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+          <span class="role-lbl">Coach</span>
+        </button>
+        <button type="button" class="role-btn" id="roleAthlete" onclick="setRole('patient')">
+          <svg class="role-icon icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          <span class="role-lbl">Athlete</span>
+        </button>
+      </div>
 
-        <div id="signupError" class="alert-banner error" style="display:none;"></div>
+      <div id="signupError" style="display:none;background:rgba(255,23,68,0.1);border:1px solid rgba(255,23,68,0.2);color:#ff5252;padding:0.75rem;border-radius:6px;font-size:0.85rem;margin-bottom:1.5rem;text-align:center"></div>
 
-        <form id="signupForm">
-          <div class="form-field">
-            <label for="name">Full name</label>
-            <input id="name" name="name" type="text" placeholder="Alex Johnson" />
+      <form id="signupForm">
+        <input type="hidden" id="role" value="doctor" />
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group">
+            <label class="form-label" for="name">Full Name</label>
+            <input id="name" type="text" class="form-input" placeholder="Alex J" required />
           </div>
-          <div class="form-field">
-            <label for="username">Username <span style="color:#f87171">*</span></label>
-            <input id="username" name="username" type="text" required placeholder="alexj" autocomplete="username" />
+          <div class="form-group">
+            <label class="form-label" for="signupAge">Age</label>
+            <input id="signupAge" type="number" class="form-input" placeholder="28" min="13" max="100" />
           </div>
-
-          <div class="form-field">
-            <label>Role <span style="color:#f87171">*</span></label>
-            <div class="role-options">
-              <div class="role-option">
-                <input type="radio" id="roleDoctor" name="role" value="doctor" required />
-                <label for="roleDoctor"><span class="role-icon">&#128104;&#8205;&#9877;&#65039;</span>Doctor</label>
-              </div>
-              <div class="role-option">
-                <input type="radio" id="roleFitness" name="role" value="fitness" />
-                <label for="roleFitness"><span class="role-icon">&#127939;</span>Fitness Enthusiast</label>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-field">
-            <label for="password">Password <span style="color:#f87171">*</span></label>
-            <input id="password" name="password" type="password" required placeholder="••••••••" autocomplete="new-password" />
-          </div>
-
-          <button class="btn-primary btn-block" type="submit" id="signupBtn" style="margin-top:0.5rem;">
-            Create account
-          </button>
-        </form>
-
-        <div class="form-footer" style="margin-top:1.5rem;">
-          Already have an account? <a href="/login.html">Sign in &rarr;</a>
         </div>
+
+        <div class="form-group">
+          <label class="form-label" for="username">Username</label>
+          <input id="username" type="text" class="form-input" placeholder="username" autocomplete="username" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input id="password" type="password" class="form-input" placeholder="Create password" required />
+        </div>
+
+        <button type="submit" class="btn-primary btn-block" style="width:100%">Create Account</button>
+      </form>
+
+      <div class="auth-foot">
+        Already have an account? <a href="/login.html">Sign In</a>
       </div>
     </div>
   </div>
 
   <div class="toast-container" id="toastContainer"></div>
   <script src="/app.js"></script>
+  <script>
+    function setRole(role){
+      document.getElementById("role").value = role;
+      const coachBtn = document.getElementById("roleCoach");
+      const athBtn = document.getElementById("roleAthlete");
+      if(role === "doctor"){
+        coachBtn.classList.add("active","blue");
+        athBtn.classList.remove("active");
+      } else {
+        athBtn.classList.add("active");
+        coachBtn.classList.remove("active","blue");
+      }
+    }
+  </script>
 </body>
 </html>
