@@ -262,7 +262,11 @@
     socket.on('sensor-data', (data) => {
         const sensorEl = document.getElementById('sensorValue');
         const pulseEl  = document.getElementById('pulseValue');
-        if (sensorEl && data.value  !== undefined) sensorEl.textContent = Math.round(data.value) + '%';
+        // Convert raw ADC value (0-4095) to percentage (0-100%)
+        if (sensorEl && data.value  !== undefined) {
+            const percentage = Math.round((data.value / 4095) * 100);
+            sensorEl.textContent = percentage + '%';
+        }
         if (pulseEl  && data.pulse  !== undefined) pulseEl.textContent  = Math.round(data.pulse) + ' bpm';
     });
 

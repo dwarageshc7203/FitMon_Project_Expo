@@ -457,8 +457,11 @@
     });
 
     socket.on('sensor-data', (data) => {
-      if (data.value !== undefined)
-        document.getElementById('muscleActivation').textContent = Math.round(data.value) + '%';
+      // Convert raw ADC value (0-4095) to percentage (0-100%)
+      if (data.value !== undefined) {
+        const percentage = Math.round((data.value / 4095) * 100);
+        document.getElementById('muscleActivation').textContent = percentage + '%';
+      }
       if (data.pulse !== undefined)
         document.getElementById('heartRate').textContent = Math.round(data.pulse) + ' bpm';
     });

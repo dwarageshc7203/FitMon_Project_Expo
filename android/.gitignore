@@ -1,0 +1,26 @@
+# Gradle
+.gradle/
+build/
+local.properties
+
+# Android Studio
+*.iml
+.idea/
+
+# APK
+*.apk
+*.ap_
+*.aab
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Build outputs
+bin/
+gen/
+out/
+captures/
+
+# External libraries
+.externalNativeBuild/
+.cxx/

@@ -1,10 +1,10 @@
-# RMP System - Remote Medical Practice System
+# FitMon - Remote Fitness Monitoring System
 
-A real-time patient monitoring system for remote rehabilitation exercises, featuring computer vision-based rep counting, form analysis, and muscle activation monitoring via FSR sensors.
+A real-time athlete monitoring system for remote fitness training, featuring computer vision-based rep counting, form analysis, and muscle activation monitoring via FSR sensors.
 
 ## 📋 System Overview
 
-The RMP System enables **exactly 1 patient and 1 doctor** to work together:
+The FitMon System enables **exactly 1 athlete and 1 coach** to work together:
 
 - **Patient**: Performs bicep curls in front of webcam, which tracks reps and form accuracy using MediaPipe Pose
 - **ESP32**: Reads FSR (Force Sensitive Resistor) sensor data and sends muscle activation readings
@@ -106,32 +106,34 @@ rmp-system/
 2. **Configure the sketch:**
    - Open `esp32/fsr_sensor.ino` in Arduino IDE
    
-   - **IMPORTANT: Find your server's IP address first:**
+   - **✨ Automatic Discovery (mDNS):**
+     - The ESP32 will **automatically discover** the backend server using mDNS (no manual IP configuration needed!)
+     - The backend advertises itself as `fitmon.local` on the network
+     - If mDNS fails, it falls back to the configured IP address
+   
+   - **IMPORTANT: Configure WiFi credentials:**
+     ```cpp
+     const char* WIFI_SSID = "YOUR_WIFI_SSID";          // Same WiFi ESP32 will use
+     const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";   // Same WiFi password
+     const char* API_KEY = "changeme123";  // Must match backend .env SENSOR_API_KEY
+     ```
+   
+   - **Optional Fallback IP (if mDNS fails):**
      - **Quick method**: Run the helper script in project root:
        - **Windows**: Double-click `find-server-ip.bat` or run it from command line
        - **Mac/Linux**: Run `./find-server-ip.sh` (make executable first: `chmod +x find-server-ip.sh`)
      - **Manual method**:
        - **Windows**: Run `ipconfig` in PowerShell/CMD, find "IPv4 Address"
        - **Mac/Linux**: Run `ifconfig` or `ip addr show`
-     - This must be on the **SAME network** the ESP32 will connect to!
-   
-   - Update these constants in the code:
-     ```cpp
-     const char* WIFI_SSID = "YOUR_WIFI_SSID";          // Same WiFi ESP32 will use
-     const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";   // Same WiFi password
-     const char* SERVER_URL = "http://YOUR_SERVER_IP:3000";  // Your computer's IP on same network
-     const char* API_KEY = "changeme123";  // Must match backend .env SENSOR_API_KEY
-     ```
-   
-   - **Example**: If your computer IP is `192.168.1.100`, use:
-     ```cpp
-     const char* SERVER_URL = "http://192.168.1.100:3000";
-     ```
+     - Update `FALLBACK_SERVER_IP` in the code:
+       ```cpp
+       const char* FALLBACK_SERVER_IP = "192.168.1.100";  // Your computer's IP on same network
+       ```
    
    - **⚠️ Network Requirements:**
      - ESP32 and server computer MUST be on the same WiFi network
      - Both must be on same subnet (e.g., both `192.168.1.x` OR both `192.168.186.x`)
-     - If ESP32 shows IP like `192.168.186.84` but server is `192.168.1.3`, they're on different networks!
+     - mDNS works best on networks without client isolation enabled
 
 3. **Hardware Connections:**
    - Connect FSR sensor to **GPIO34** (or change `FSR_PIN` in code)
@@ -338,7 +340,7 @@ The system uses Socket.IO for real-time communication:
     - Router settings: Ensure AP isolation/client isolation is disabled
   
   - **Still having issues?**
-    - Verify backend is running: Check console for "RMP System backend running"
+    - Verify backend is running: Check console for "FitMon backend running"
     - Test from another device on same network
     - Try pinging server IP from ESP32's network (may require router access)
     - Ensure backend listens on `0.0.0.0` (already configured in `main.ts`)

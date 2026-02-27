@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo   RMP System - Find Server IP Address
+echo   FitMon - Find Server IP Address
 echo ========================================
 echo.
 echo This script shows your computer's IP address(es).

@@ -1,10 +1,10 @@
 #!/bin/bash
-# RMP System - Find Server IP Address
+# FitMon - Find Server IP Address
 # This script shows your computer's IP address(es)
 # Use this IP in the ESP32 SERVER_URL configuration
 
 echo "========================================"
-echo "  RMP System - Find Server IP Address"
+echo "  FitMon - Find Server IP Address"
 echo "========================================"
 echo ""
 echo "This script shows your computer's IP address(es)."

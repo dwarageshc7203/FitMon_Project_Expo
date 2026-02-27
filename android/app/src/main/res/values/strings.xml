@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FitMon</string>
+    <string name="welcome">Welcome Back</string>
+    <string name="sign_in">Sign In</string>
+    <string name="sign_up">Sign Up</string>
+    <string name="get_started">Get Started</string>
+    <string name="username">Username</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="login">Log In</string>
+    <string name="logout">Logout</string>
+    <string name="home">Home</string>
+    <string name="workouts">Workouts</string>
+    <string name="profile">Profile</string>
+</resources>

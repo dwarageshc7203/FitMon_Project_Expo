@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "FitMon",
+    "slug": "fitmon-mobile",
+    "version": "1.0.0",
+    "sdkVersion": "54.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.remorehab.mobile"
+    },
+    "android": {
+      "package": "com.remorehab.mobile",
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "ACCESS_WIFI_STATE"
+      ]
+    }
+  }
+}

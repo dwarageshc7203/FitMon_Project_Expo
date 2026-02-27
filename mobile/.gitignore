@@ -1,0 +1,43 @@
+# Expo
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# macOS
+.DS_Store
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+
+# Logs
+*.log
+
+# Build
+*.apk
+*.ipa
+*.jks
+*.p8
+*.p12
+*.keystore
+*.mobileprovision
+
+# Temporary
+*.tmp
+*.temp

@@ -1,8 +1,13 @@
 /**
- * ESP32 FSR Sensor - Remote Medical Practice System
+ * ESP32 FSR Sensor - FitMon System
  * 
  * This sketch reads FSR (Force Sensitive Resistor) sensor values from an analog pin
  * and sends them to the backend server via HTTP POST requests every 200ms.
+ * 
+ * ✨ AUTOMATIC DISCOVERY: Uses mDNS to automatically find the backend server!
+ *    - No manual IP configuration needed
+ *    - Server is discovered as "fitmon.local"
+ *    - Falls back to hardcoded IP if mDNS fails
  * 
  * Hardware Setup:
  * - FSR sensor connected to analog pin (default: GPIO34 / A2)
@@ -12,25 +17,25 @@
  * 
  * Configuration:
  * - Update WIFI_SSID and WIFI_PASSWORD with your WiFi credentials
- * - Update SERVER_URL with your backend server IP address
- *   ⚠️ IMPORTANT: ESP32 and server must be on the SAME network!
- *   - Find server IP: Run 'find-server-ip.bat' (Windows) or 'find-server-ip.sh' (Mac/Linux)
- *   - Or manually: Windows: 'ipconfig', Mac/Linux: 'ifconfig'
- *   - ESP32 IP and server IP must be in same subnet (e.g., both 192.168.1.x)
  * - Update API_KEY to match backend .env SENSOR_API_KEY
+ * - (Optional) Update FALLBACK_SERVER_IP if mDNS discovery fails
+ *   ⚠️ IMPORTANT: ESP32 and server must be on the SAME network!
  */
 
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <ESPmDNS.h>
 
 // ============ CONFIGURATION ============
 const char* WIFI_SSID = "moto edge 50 neo_3260";      // Replace with your WiFi SSID
 const char* WIFI_PASSWORD = "dwarageshdc"; // Replace with your WiFi password
 
-// ⚠️ IMPORTANT: SERVER_URL must be your computer's IP on the SAME network as ESP32
-// Find your IP: Run 'find-server-ip.bat' (Windows) or 'find-server-ip.sh' (Mac/Linux)
-// Both devices must be on same subnet (e.g., ESP32: 192.168.1.84, Server: 192.168.1.100)
-const char* SERVER_URL = "http://192.168.186.189:3000"; // Your computer's IP on current network
+// mDNS Configuration - Server will be auto-discovered as "fitmon.local"
+const char* MDNS_HOSTNAME = "fitmon";               // mDNS hostname (fitmon.local)
+const int SERVER_PORT = 3000;                       // Backend server port
+
+// Fallback IP if mDNS discovery fails
+const char* FALLBACK_SERVER_IP = "192.168.186.189"; // Your computer's IP on current network
 
 const char* API_KEY = "changeme123";            // Must match backend .env SENSOR_API_KEY
 
@@ -42,6 +47,7 @@ const int SEND_INTERVAL = 200; // Send data every 200ms
 unsigned long lastSendTime = 0;
 HTTPClient http;
 WiFiClient client;
+String serverURL = "";  // Will be set after mDNS discovery or fallback
 
 // ============ SETUP ============
 void setup() {
@@ -50,7 +56,7 @@ void setup() {
   delay(1000);
   
   Serial.println("\n\n========================================");
-  Serial.println("  RMP System - ESP32 FSR Sensor");
+  Serial.println("  FitMon - ESP32 FSR Sensor");
   Serial.println("========================================\n");
 
   // Configure FSR pin (analog input)
@@ -59,9 +65,12 @@ void setup() {
   // Connect to WiFi
   connectToWiFi();
   
+  // Discover backend server via mDNS or use fallback
+  discoverServer();
+  
   Serial.println("✅ ESP32 initialized and ready!");
   Serial.print("📡 Sending sensor data to: ");
-  Serial.println(SERVER_URL);
+  Serial.println(serverURL);
   Serial.print("⏱️  Update interval: ");
   Serial.print(SEND_INTERVAL);
   Serial.println("ms\n");
@@ -73,6 +82,7 @@ void loop() {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("⚠️  WiFi disconnected. Reconnecting...");
     connectToWiFi();
+    discoverServer();  // Re-discover server after reconnect
   }
 
   // Send sensor reading at specified interval
@@ -133,6 +143,33 @@ void connectToWiFi() {
 }
 
 /**
+ * Discover backend server using mDNS
+ */
+void discoverServer() {
+  Serial.println("🔍 Discovering FitMon backend server via mDNS...");
+  
+  // Try to resolve mDNS hostname
+  IPAddress serverIP = MDNS.queryHost(MDNS_HOSTNAME);
+  
+  if (serverIP.toString() != "0.0.0.0") {
+    // mDNS discovery successful
+    serverURL = "http://" + serverIP.toString() + ":" + String(SERVER_PORT);
+    Serial.println("✅ Server discovered via mDNS!");
+    Serial.print("📡 Server: ");
+    Serial.print(MDNS_HOSTNAME);
+    Serial.print(".local -> ");
+    Serial.println(serverIP);
+  } else {
+    // mDNS failed, use fallback IP
+    serverURL = "http://" + String(FALLBACK_SERVER_IP) + ":" + String(SERVER_PORT);
+    Serial.println("⚠️  mDNS discovery failed, using fallback IP");
+    Serial.print("📡 Fallback Server: ");
+    Serial.println(serverURL);
+    Serial.println("💡 Tip: Make sure backend is running and mDNS is enabled");
+  }
+}
+
+/**
  * Read FSR sensor value and send to backend
  */
 void sendSensorReading() {
@@ -153,7 +190,7 @@ void sendSensorReading() {
   String jsonPayload = "{\"value\":" + String(sensorValue) + "}";
   
   // Build full URL
-  String fullURL = String(SERVER_URL) + "/iot/reading";
+  String fullURL = serverURL + "/iot/reading";
   
   // Debug: Print URL on first attempt or error
   static bool firstAttempt = true;
