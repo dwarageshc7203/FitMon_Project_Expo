@@ -1,7 +1,7 @@
 {
-  "name": "rmp-system-backend",
+  "name": "fitmon-backend",
   "version": "1.0.0",
-  "description": "Remote Medical Practice System - Backend",
+  "description": "FitMon - Remote Fitness Monitoring Backend",
   "author": "",
   "private": true,
   "license": "MIT",

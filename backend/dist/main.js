@@ -16,7 +16,7 @@ async function bootstrap() {
     });
     const port = process.env.PORT || 3000;
     await app.listen(port, '0.0.0.0');
-    console.log(`🚀 RMP System backend running on http://localhost:${port}`);
+    console.log(`🚀 FitMon backend running on http://localhost:${port}`);
     console.log(`📱 Patient page: http://localhost:${port}/patient.html`);
     console.log(`👨‍⚕️ Doctor dashboard: http://localhost:${port}/doctor.html`);
     console.log(`🌐 Access from network: http://YOUR_IP:${port}`);
