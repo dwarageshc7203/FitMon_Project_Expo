@@ -37,6 +37,7 @@
     .status-dot.active { background: var(--green-bright); box-shadow: 0 0 8px var(--green-bright); animation: pulse-green 2s infinite; }
     .status-dot.error { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
     @keyframes pulse-green { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     
     .form-panel { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-xl); padding: 2rem; margin-bottom: 2rem; }
     .form-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-dim); }
@@ -189,8 +190,12 @@
             <input type="hidden" name="accuracy_rate" id="accuracy_rate">
             <input type="hidden" name="activation_rate" id="activation_rate">
             <input type="hidden" name="pulse_rate" id="pulse_rate">
-            <div style="display: flex; gap: 1rem; align-items: center;">
+            <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
               <button type="submit" id="generateBtn" class="btn-primary" style="padding: 0.85rem 1.5rem;"><svg class="icon" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" fill="currentColor"/></svg>Generate Report</button>
+              <div id="metricsStatus" style="font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--text-faint);" id="metricsStatusDot"></span>
+                <span id="metricsStatusText">Waiting for session metrics...</span>
+              </div>
               <div id="loadingIndicator" style="display:none; color: var(--text-muted); font-size: 0.9rem;"><span style="display: flex; align-items: center; gap: 0.5rem;"><svg class="icon" style="animation: spin 1s linear infinite" viewBox="0 0 24 24"><path d="M12 4V2C6.48 2 2 6.48 2 12h2c0-4.41 3.59-8 8-8zm0 14c4.41 0 8-3.59 8-8h-2c0 3.31-2.69 6-6 6v2zm-6-2.5l2.5-2.5-1.41-1.41L4.59 14 7 16.41zm0-3.59L4.59 10 7 7.59 8.41 9l-2.41 2.41zm12.91-5.5L17.5 7.59l2.41-2.41L18.5 3.5l-2.5 2.5z" fill="currentColor"/></svg>Processing session data...</span></div>
             </div>
           </form>
@@ -228,34 +233,98 @@
         // Join the session room so cv-update and sensor-data are scoped correctly
         const code = localStorage.getItem('fitmonSessionCode');
         if (code) {
-            socket.emit('join-session', { code, role: 'doctor' });
+            console.log('🔗 Joining session as doctor with code:', code);
+            socket.emit('join-session', { code, role: 'doctor' }, (response) => {
+                console.log('✅ Join-session response:', response);
+            });
+            document.getElementById('sessionCodeDisplay').textContent = `Session Code: ${code.toUpperCase()}`;
+        } else {
+            console.warn('⚠️ No session code found in localStorage');
+            document.getElementById('sessionCodeDisplay').textContent = 'No active session';
         }
-
-        const connStatus = document.getElementById('connStatus');
-        if (connStatus) connStatus.innerHTML =
-          '<span class="status-indicator disconnected" id="wsStatusDot"></span> Connecting...';
     });
 
     socket.on('connect', () => {
-        const dot = document.getElementById('wsStatusDot');
-        if (dot) { dot.className = 'status-indicator connected'; dot.nextSibling.textContent = ' Live'; }
+        console.log('✅ WebSocket connected');
+        console.log('   Socket ID:', socket.id);
+        const dot = document.getElementById('statusIndicator');
+        const status = document.getElementById('connectionStatus');
+        if (dot) dot.className = 'status-dot active';
+        if (status) status.textContent = 'Connected';
         const code = localStorage.getItem('fitmonSessionCode');
-        if (code) socket.emit('join-session', { code, role: 'doctor' });
+        if (code) {
+            console.log('🔗 Re-joining session after reconnect:', code);
+            socket.emit('join-session', { code, role: 'doctor' }, (response) => {
+                console.log('✅ Re-join response:', response);
+            });
+        } else {
+            console.warn('⚠️ No session code for reconnect');
+        }
     });
 
     socket.on('disconnect', () => {
-        const dot = document.getElementById('wsStatusDot');
-        if (dot) { dot.className = 'status-indicator disconnected'; dot.nextSibling.textContent = ' Disconnected'; }
+        console.log('❌ WebSocket disconnected');
+        const dot = document.getElementById('statusIndicator');
+        const status = document.getElementById('connectionStatus');
+        if (dot) dot.className = 'status-dot';
+        if (status) status.textContent = 'Disconnected';
+    });
+
+    // Peer joined the session
+    socket.on('peer-joined', (data) => {
+        console.log('👥 Peer joined:', data);
+        if (data.role === 'patient') {
+            const dot = document.getElementById('patientDot');
+            const status = document.getElementById('patientStatus');
+            if (dot) dot.className = 'status-dot active';
+            if (status) status.textContent = 'Athlete Online';
+            console.log('✅ Patient is now online - expect cv-update events');
+        } else if (data.role === 'doctor') {
+            console.log('ℹ️ Another doctor joined the session');
+        }
+    });
+
+    // Peer left the session
+    socket.on('peer-left', (data) => {
+        console.log('👋 Peer left:', data);
+        const dot = document.getElementById('patientDot');
+        const status = document.getElementById('patientStatus');
+        if (dot) dot.className = 'status-dot';
+        if (status) status.textContent = 'Athlete Offline';
     });
 
     // Live CV data from patient
     socket.on('cv-update', (data) => {
+        console.log('🎥 Received cv-update:', data);
+        console.log('   Current socket ID:', socket.id);
+        console.log('   Data contents:', JSON.stringify(data));
+        
         const repEl  = document.getElementById('repCount');
         const accEl  = document.getElementById('formAccuracy');
-        if (repEl && data.reps !== undefined)
+        
+        if (repEl && data.reps !== undefined) {
             repEl.textContent = data.reps;
-        if (accEl && data.formAccuracy !== undefined)
-            accEl.textContent = Math.round(data.formAccuracy) + '%';
+            console.log('📊 Updated repCount element to:', data.reps);
+        } else {
+            console.warn('⚠️ repCount element not found or data.reps undefined');
+        }
+        
+        if (accEl && data.formAccuracy !== undefined) {
+            const rounded = Math.round(data.formAccuracy);
+            accEl.textContent = rounded + '%';
+            console.log('📊 Updated formAccuracy element to:', rounded + '%');
+            
+            // Update chart
+            if (liveChart) {
+                dataCounter++;
+                updateChart(liveChart, dataCounter.toString(), data.formAccuracy);
+            }
+        } else {
+            console.warn('⚠️ formAccuracy element not found or data.formAccuracy undefined');
+        }
+        
+        // Update metrics status indicator
+        updateMetricsStatus();
     });
 
     // Live sensor data from IoT
@@ -267,8 +336,139 @@
             const percentage = Math.round((data.value / 4095) * 100);
             sensorEl.textContent = percentage + '%';
         }
-        if (pulseEl  && data.pulse  !== undefined) pulseEl.textContent  = Math.round(data.pulse) + ' bpm';
+        if (pulseEl  && data.pulse  !== undefined) {
+            pulseEl.textContent  = Math.round(data.pulse) + ' bpm';
+            
+            // Update chart
+            if (pulseChart && data.pulse > 0) {
+                dataCounter++;
+                updateChart(pulseChart, dataCounter.toString(), data.pulse);
+            }
+        }
+        
+        // Update metrics status indicator
+        updateMetricsStatus();
     });
+
+    // ─── Chart Setup ─────────────────────────────────────────────────────────
+    let liveChart, pulseChart;
+    const maxDataPoints = 20;
+    let dataCounter = 0;
+
+    // Initialize Form Consistency Chart
+    const liveCtx = document.getElementById('liveChart')?.getContext('2d');
+    if (liveCtx) {
+        liveChart = new Chart(liveCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Form Accuracy %',
+                    data: [],
+                    borderColor: 'rgba(0, 230, 118, 0.8)',
+                    backgroundColor: 'rgba(0, 230, 118, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 3,
+                    pointHoverRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { 
+                        mode: 'index', 
+                        intersect: false,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 10,
+                        cornerRadius: 8
+                    }
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        max: 100,
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+                    },
+                    x: { 
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+                    }
+                },
+                animation: { duration: 300 }
+            }
+        });
+    }
+
+    // Initialize Heart Rate Chart
+    const pulseCtx = document.getElementById('pulseChart')?.getContext('2d');
+    if (pulseCtx) {
+        pulseChart = new Chart(pulseCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Heart Rate (BPM)',
+                    data: [],
+                    borderColor: 'rgba(244, 67, 54, 0.8)',
+                    backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 3,
+                    pointHoverRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { 
+                        mode: 'index', 
+                        intersect: false,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 10,
+                        cornerRadius: 8
+                    }
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: false,
+                        min: 40,
+                        max: 180,
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+                    },
+                    x: { 
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+                    }
+                },
+                animation: { duration: 300 }
+            }
+        });
+    }
+
+    // Update charts with new data
+    function updateChart(chart, label, value) {
+        if (!chart) return;
+        
+        chart.data.labels.push(label);
+        chart.data.datasets[0].data.push(value);
+        
+        // Keep only last N data points
+        if (chart.data.labels.length > maxDataPoints) {
+            chart.data.labels.shift();
+            chart.data.datasets[0].data.shift();
+        }
+        
+        chart.update();
+    }
 
     // BMI Calculation
     const bh = document.getElementById('height');
@@ -284,6 +484,31 @@
         bw.addEventListener('input', calcBmi);
     }
 
+    // Update metrics status indicator
+    function updateMetricsStatus() {
+        const formAccText = document.getElementById('formAccuracy')?.textContent || '0%';
+        const sensorText = document.getElementById('sensorValue')?.textContent || '0%';
+        const accuracy = parseFloat(formAccText.replace('%', '')) || 0;
+        const activation = parseFloat(sensorText.replace('%', '')) || 0;
+        
+        const statusDot = document.getElementById('metricsStatusDot');
+        const statusText = document.getElementById('metricsStatusText');
+        
+        if (!statusDot || !statusText) return;
+        
+        if (accuracy > 0 || activation > 0) {
+            statusDot.style.background = 'var(--green-bright)';
+            statusDot.style.boxShadow = '0 0 8px var(--green-bright)';
+            statusText.textContent = `Metrics ready (Acc: ${accuracy}%, Act: ${activation}%)`;
+            statusText.style.color = 'var(--green-bright)';
+        } else {
+            statusDot.style.background = 'var(--text-faint)';
+            statusDot.style.boxShadow = 'none';
+            statusText.textContent = 'Waiting for session metrics...';
+            statusText.style.color = 'var(--text-muted)';
+        }
+    }
+
     // Report Generation Form Handler
     const reportForm = document.getElementById('sessionReportForm');
     if(reportForm) {
@@ -295,6 +520,26 @@
             const reportSection = document.getElementById('reportSection');
             const reportContent = document.getElementById('reportContent');
             
+            // Extract and parse metrics from UI
+            const formAccText = document.getElementById('formAccuracy').textContent || '0%';
+            const sensorText = document.getElementById('sensorValue').textContent || '0%';
+            const pulseText = document.getElementById('pulseValue').textContent || '--';
+            
+            // Parse accuracy (remove % sign)
+            const accuracy_rate = parseFloat(formAccText.replace('%', '')) || 0;
+            // Parse activation (remove % sign)
+            const activation_rate = parseFloat(sensorText.replace('%', '')) || 0;
+            // Parse pulse (handle "--" or "XXX bpm" format)
+            let pulse_rate = 70; // default
+            if (pulseText !== '--') {
+                const pulseNum = parseInt(pulseText.replace(/[^0-9]/g, ''));
+                if (!isNaN(pulseNum) && pulseNum >= 30 && pulseNum <= 220) {
+                    pulse_rate = pulseNum;
+                }
+            }
+            
+            console.log('📋 Extracted metrics:', { accuracy_rate, activation_rate, pulse_rate });
+            
             // Get form values
             const formData = {
                 height: parseFloat(document.getElementById('height').value),
@@ -303,21 +548,30 @@
                 fitness_experience: document.getElementById('fitness_experience').value.toLowerCase(),
                 therapy_cause: document.getElementById('therapy_cause').value,
                 goal: document.getElementById('goal').value,
-                accuracy_rate: parseFloat(document.getElementById('formAccuracy').textContent) || 0,
-                activation_rate: parseFloat(document.getElementById('sensorValue').textContent) || 0,
-                pulse_rate: parseInt(document.getElementById('pulseValue').textContent) || 70
+                accuracy_rate: accuracy_rate,
+                activation_rate: activation_rate,
+                pulse_rate: pulse_rate,
+                sessionId: localStorage.getItem('fitmonSessionCode') || undefined
             };
             
-            // Validate
+            // Validate patient details
             if(!formData.height || !formData.weight || !formData.bmi) {
-                alert('Please fill in all patient details');
+                alert('⚠️ Please fill in all patient details (Height, Weight, BMI)');
                 return;
+            }
+            
+            // Validate metrics
+            if (accuracy_rate === 0 && activation_rate === 0) {
+                const proceed = confirm('⚠️ Warning: No session metrics detected (Accuracy: 0%, Activation: 0%).\n\nThis might mean the patient hasn\'t started exercising yet.\n\nDo you want to generate a report anyway?');
+                if (!proceed) return;
             }
             
             // Show loading
             btn.disabled = true;
             btn.style.opacity = '0.5';
             loader.style.display = 'block';
+            
+            console.log('📤 Sending report request:', formData);
             
             try {
                 const response = await fetch('/session/generate-report', {
@@ -328,19 +582,38 @@
                 
                 if(!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.message || error.error || 'Failed to generate report');
+                    const errorMsg = error.error || error.message || 'Failed to generate report';
+                    console.error('❌ Report generation failed:', error);
+                    
+                    // Check for common API key issues
+                    if (errorMsg.includes('GEMINI_API_KEY') || errorMsg.includes('404') || errorMsg.includes('not found')) {
+                        alert('⚠️ AI Service Configuration Error\n\n' + 
+                              'The Gemini AI service is not properly configured.\n\n' +
+                              'Please check:\n' +
+                              '1. GEMINI_API_KEY is set in backend/.env file\n' +
+                              '2. API key has access to Gemini models\n' +
+                              '3. Server has been restarted after adding the key\n\n' +
+                              'Error: ' + errorMsg.substring(0, 200));
+                    } else {
+                        alert('❌ Error generating report:\n\n' + errorMsg);
+                    }
+                    throw new Error(errorMsg);
                 }
                 
                 const report = await response.json();
+                console.log('✅ Report generated successfully:', report);
                 
                 // Display report
                 displayReport(report);
                 reportSection.classList.add('active');
                 reportSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 
+                // Show success message
+                showToast('Report generated successfully!', 'success');
+                
             } catch(err) {
-                alert('Error generating report: ' + err.message);
-                console.error('Report generation error:', err);
+                console.error('❌ Report generation error:', err);
+                // Error already shown in alert above
             } finally {
                 btn.disabled = false;
                 btn.style.opacity = '1';

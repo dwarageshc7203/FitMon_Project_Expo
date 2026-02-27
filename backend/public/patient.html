@@ -390,11 +390,20 @@
 
         // Broadcast to doctor via socket (skipped silently in solo mode)
         if (repCount !== lastEmittedReps) {
-          socket.emit('cv-update', {
-            reps: repCount,
-            formAccuracy: avgAccuracy,
-            timestamp: Date.now(),
-          });
+          if (soloMode) {
+            console.log('🏃 Solo mode - NOT emitting cv-update');
+          } else {
+            console.log('🎥 Emitting cv-update:', { reps: repCount, formAccuracy: avgAccuracy });
+            console.log('   Socket ID:', socket.id);
+            console.log('   Socket connected:', socket.connected);
+            socket.emit('cv-update', {
+              reps: repCount,
+              formAccuracy: avgAccuracy,
+              timestamp: Date.now(),
+            }, (response) => {
+              console.log('✅ cv-update acknowledged:', response);
+            });
+          }
           lastEmittedReps = repCount;
         }
       }
@@ -429,10 +438,19 @@
       if (soloMode) {
         document.getElementById('navRole').textContent = 'Solo Practice';
         localStorage.removeItem('fitmonSoloMode');
+        console.log('🏃 Solo mode enabled - cv-update will NOT be sent');
       } else {
         const code = localStorage.getItem('fitmonSessionCode');
         if (code) {
-          socket.emit('join-session', { code, role: 'patient' });
+          console.log('🔗 Joining session as patient with code:', code);
+          socket.emit('join-session', { code, role: 'patient' }, (response) => {
+            console.log('✅ Join-session response:', response);
+            if (response && response.room) {
+              console.log('✅ Successfully joined room:', response.room);
+            }
+          });
+        } else {
+          console.warn('⚠️ No session code found in localStorage');
         }
       }
 
@@ -441,17 +459,27 @@
     });
 
     socket.on('connect', () => {
+      console.log('✅ WebSocket connected');
+      console.log('   Socket ID:', socket.id);
       document.getElementById('connStatus').classList.add('online');
       document.getElementById('connStatus').querySelector('span').textContent = 'Connected';
       // Re-join session room after reconnect
       if (!soloMode) {
         const code = localStorage.getItem('fitmonSessionCode');
         const user = getCurrentUser();
-        if (code && user) socket.emit('join-session', { code, role: 'patient' });
+        if (code && user) {
+          console.log('🔗 Re-joining session after reconnect:', code);
+          socket.emit('join-session', { code, role: 'patient' }, (response) => {
+            console.log('✅ Re-join response:', response);
+          });
+        }
+      } else {
+        console.log('🏃 Solo mode - not joining any session room');
       }
     });
 
     socket.on('disconnect', () => {
+      console.log('❌ WebSocket disconnected');
       document.getElementById('connStatus').classList.remove('online');
       document.getElementById('connStatus').querySelector('span').textContent = 'Disconnected';
     });

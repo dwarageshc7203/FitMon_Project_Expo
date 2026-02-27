@@ -307,35 +307,117 @@
 
         // Coach Logic
         function generateSession() {
-            // In a real app, call API. For now, random code.
-            const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-            document.getElementById('generated-code').textContent = code;
-            sessionStorage.setItem('sessionCode', code);
+            const userStr = localStorage.getItem('fitmonCurrentUser');
+            if (!userStr) {
+                alert('User not logged in');
+                return;
+            }
+            const user = JSON.parse(userStr);
             
-            document.getElementById('coach-step-1').style.display = 'none';
-            document.getElementById('coach-step-2').style.display = 'block';
+            // Call backend to create a proper session
+            fetch('/session/create-meeting', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ doctorId: user.id })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.code) {
+                    console.log('✅ Session created:', data.code);
+                    document.getElementById('generated-code').textContent = data.code;
+                    // Store in localStorage with correct key
+                    localStorage.setItem('fitmonSessionCode', data.code);
+                    if (data.sessionId) {
+                        localStorage.setItem('fitmonSessionId', data.sessionId);
+                    }
+                    
+                    document.getElementById('coach-step-1').style.display = 'none';
+                    document.getElementById('coach-step-2').style.display = 'block';
+                } else {
+                    alert('Failed to create session: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                console.error('Error creating session:', err);
+                alert('Error creating session. Please try again.');
+            });
         }
 
         function copyCode() {
             const code = document.getElementById('generated-code').textContent;
-            navigator.clipboard.writeText(code);
-            alert('Code copied to clipboard: ' + code);
+            if (code === '------') {
+                alert('Please generate a code first');
+                return;
+            }
+            navigator.clipboard.writeText(code).then(() => {
+                alert('Code copied to clipboard: ' + code);
+            }).catch(err => {
+                console.error('Copy failed:', err);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = code;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Code copied to clipboard: ' + code);
+            });
         }
 
         function launchDashboard() {
+            const code = localStorage.getItem('fitmonSessionCode');
+            if (!code) {
+                alert('No session code found. Please generate a code first.');
+                return;
+            }
+            console.log('🚀 Launching dashboard with session code:', code);
             window.location.href = '/doctor.html';
         }
 
         // Athlete Logic
         function joinSession() {
-            const code = document.getElementById('input-session-code').value.trim();
+            const code = document.getElementById('input-session-code').value.trim().toUpperCase();
+            const errEl = document.getElementById('joinError');
+            
             if (code.length < 3) {
-                document.getElementById('joinError').textContent = 'Invalid Code';
-                document.getElementById('joinError').style.display = 'block';
+                errEl.textContent = 'Invalid Code';
+                errEl.style.display = 'block';
                 return;
             }
-            sessionStorage.setItem('sessionCode', code);
-            window.location.href = '/patient.html';
+            
+            const userStr = localStorage.getItem('fitmonCurrentUser');
+            if (!userStr) {
+                alert('User not logged in');
+                return;
+            }
+            const user = JSON.parse(userStr);
+            
+            // Call backend to join the session
+            fetch('/session/join-meeting', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ patientId: user.id, code: code })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.code) {
+                    console.log('✅ Joined session:', data.code);
+                    // Store in localStorage with correct key
+                    localStorage.setItem('fitmonSessionCode', data.code);
+                    if (data.sessionId) {
+                        localStorage.setItem('fitmonSessionId', data.sessionId);
+                    }
+                    window.location.href = '/patient.html';
+                } else {
+                    errEl.textContent = data.message || 'Failed to join session';
+                    errEl.style.display = 'block';
+                }
+            })
+            .catch(err => {
+                console.error('Error joining session:', err);
+                errEl.textContent = 'Error joining session. Please try again.';
+                errEl.style.display = 'block';
+            });
         }
     </script>
 </body>
