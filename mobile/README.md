@@ -1,13 +1,25 @@
-# FitMon Mobile App
+# FitMon Mobile App 🏋️‍♂️✨
 
-A modern, AI-powered fitness companion mobile application built with React Native and Expo.
+A modern, AI-powered fitness companion mobile application built with React Native and Expo, featuring **Telegram-inspired glassmorphism UI** and **embedded YouTube workout videos**.
 
 ## 📱 Features
 
+### 🎨 Modern UI Design
+- **Glassmorphism Effects**: Frosted glass aesthetic using Expo BlurView
+- **Telegram-Inspired**: Clean, modern interface with smooth animations
+- **Gradient Overlays**: Neon green accents and gradient borders
+- **Dark Theme**: Optimized for OLED displays with deep blacks
+
+### 🎥 Workout Features
+- **YouTube Video Integration**: Embedded workout videos using WebView
+- **Search & Filter**: Find workouts by category (Strength, Cardio, Yoga, HIIT, etc.)
+- **Workout Details**: Full instructions, stats, difficulty levels, and video players
+- **Quick Stats**: Duration, calories, steps, and equipment info at a glance
+
+### 🔐 Core Features
 - **Landing Page**: Beautiful onboarding experience with feature highlights
 - **Authentication**: Login and signup with role selection (Athlete/Coach)
 - **Home Dashboard**: Quick stats, activity feed, and quick actions
-- **Workout Library**: Browse exercise videos with search and category filters
 - **Profile Management**: Update personal info, track BMI, and manage settings
 
 ## 🚀 Getting Started
@@ -80,11 +92,22 @@ mobile/
 
 ## 🎨 Design System
 
-The app uses a dark, modern design inspired by the web version:
+The app features a **Telegram-inspired glassmorphism UI** with modern visual effects:
 
-- **Colors**: Ultra-dark base with neon green accents
+### Visual Design
+- **Glassmorphism**: Frosted glass effects using `expo-blur` with 60-95 intensity
+- **Colors**: Ultra-dark base (#030303) with neon green (#00e676) accents
+- **Gradients**: Smooth gradient overlays for depth and visual hierarchy
 - **Typography**: Space Grotesk (headings) + Inter (body)
-- **Components**: Glass-morphism cards, smooth animations
+- **Animations**: Smooth transitions and interactive feedback
+
+### Key Dependencies
+- **expo-blur** (~15.0.2): Frosted glass blur effects
+- **expo-av** (~15.0.0): Video and audio support
+- **react-native-webview** (^13.0.0): YouTube video embedding
+- **expo-linear-gradient** (^13.0.2): Gradient overlays
+
+📖 **For detailed UI documentation, see [GLASSMORPHISM-UPDATE.md](GLASSMORPHISM-UPDATE.md)**
 
 ## 🔧 Configuration
 

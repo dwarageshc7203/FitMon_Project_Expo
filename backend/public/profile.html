@@ -61,6 +61,57 @@
         }
         .content-header { border-bottom: 1px solid var(--border-dim); padding-bottom: 1rem; margin-bottom: 1.5rem; }
         .content-title { font-size: 1.1rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; }
+        
+        /* Timeline Styles */
+        .timeline-item {
+            position: relative;
+            padding-left: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-left: 2px solid var(--border-dim);
+        }
+        .timeline-item:last-child { border-left: 2px solid transparent; padding-bottom: 0; }
+        .timeline-dot {
+            position: absolute;
+            left: -6px;
+            top: 4px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--green-bright);
+            box-shadow: 0 0 10px rgba(0, 230, 118, 0.4);
+        }
+        .timeline-content {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-dim);
+            transition: var(--transition);
+        }
+        .timeline-content:hover { border-color: var(--green-border); background: rgba(0, 230, 118, 0.05); }
+        .timeline-date { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .timeline-title { font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem; font-size: 0.95rem; }
+        .timeline-meta { font-size: 0.85rem; color: var(--text-soft); }
+        .no-history { text-align: center; padding: 2rem; color: var(--text-muted); font-style: italic; }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        @media (max-width: 768px) { .stats-grid { grid-template-columns: 1fr; } }
+        .stat-box {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-dim);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+            transition: var(--transition);
+        }
+        .stat-box:hover { border-color: var(--green-border); transform: translateY(-2px); }
+        .stat-value { font-size: 2rem; font-weight: 700; color: var(--green-bright); font-family: 'Space Grotesk', sans-serif; margin-bottom: 0.25rem; }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
     </style>
 </head>
 <body data-page="profile">
@@ -148,21 +199,50 @@
 
             <!-- Right Column: Settings / Stats -->
             <div class="profile-content">
+                <!-- Statistics Card -->
+                <div class="content-card">
+                    <div class="content-header">
+                        <div class="content-title">Activity Overview</div>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-value" id="totalSessions">0</div>
+                            <div class="stat-label">Total Sessions</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" id="avgAccuracy">--</div>
+                            <div class="stat-label">Avg Accuracy</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" id="lastSession">--</div>
+                            <div class="stat-label">Last Active</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="content-card">
                     <div class="content-header">
                         <div class="content-title">Personal Information</div>
                     </div>
                     <form id="profileForm" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                         <div class="input-group">
-                            <label style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; display: block;">Full Name</label>
-                            <input type="text" class="input-field" value="Demo User" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-dim); color: #fff; border-radius: 8px;">
+                            <label style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; display: block;">Username</label>
+                            <input type="text" id="inputUsername" class="input-field" disabled style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-dim); color: var(--text-muted); border-radius: 8px;">
                         </div>
                         <div class="input-group">
-                            <label style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; display: block;">Email</label>
-                            <input type="email" class="input-field" value="user@example.com" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-dim); color: #fff; border-radius: 8px;">
+                            <label style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; display: block;">Full Name</label>
+                            <input type="text" id="inputName" class="input-field" placeholder="Enter your full name" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-dim); color: #fff; border-radius: 8px;">
                         </div>
-                        <div style="grid-column: span 2; text-align: right;">
-                            <button type="button" class="btn-primary" style="padding: 0.75rem 1.5rem; background: var(--green-bright); color: #000; font-weight: 600; border: none; border-radius: 8px; cursor: pointer;">Save Changes</button>
+                        <div class="input-group" style="grid-column: span 2;">
+                            <label style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; display: block;">Email</label>
+                            <input type="email" id="inputEmail" class="input-field" placeholder="email@example.com" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-dim); color: #fff; border-radius: 8px;">
+                        </div>
+                        <div style="grid-column: span 2; display: flex; gap: 1rem; justify-content: flex-end;">
+                            <div id="saveSuccess" style="display: none; color: var(--green-bright); font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                Changes saved successfully!
+                            </div>
+                            <button type="submit" id="saveBtn" class="btn-primary" style="padding: 0.75rem 1.5rem; background: var(--green-bright); color: #000; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: var(--transition);">Save Changes</button>
                         </div>
                     </form>
                 </div>
@@ -172,7 +252,13 @@
                         <div class="content-title">Session History</div>
                     </div>
                     <div id="sessionHistoryList">
-                        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">No history available.</div>
+                        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.3; margin-bottom: 1rem;">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            <div>Loading session history...</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -184,23 +270,30 @@
   
   <script src="/app.js"></script>
   <script>
+    let currentUser = null;
+    
     document.addEventListener('DOMContentLoaded', () => {
-        const user = getCurrentUser();
-        if(!user) { window.location.href = '/login.html'; return; }
+        currentUser = getCurrentUser();
+        if(!currentUser) { window.location.href = '/login.html'; return; }
 
         // Fill Navbar
-        document.getElementById('navName').textContent = user.username;
-        document.getElementById('navRole').textContent = user.role.toUpperCase();
-        document.getElementById('navAvatar').textContent = user.username.charAt(0).toUpperCase();
+        document.getElementById('navName').textContent = currentUser.username;
+        document.getElementById('navRole').textContent = currentUser.role.toUpperCase();
+        document.getElementById('navAvatar').textContent = currentUser.username.charAt(0).toUpperCase();
 
         // Fill Profile Card
-        document.getElementById('profileName').textContent = user.username; // Or real name if available
-        document.getElementById('profileUsername').textContent = '@' + user.username;
-        document.getElementById('profileAvatar').textContent = user.username.charAt(0).toUpperCase();
-        document.getElementById('profileRole').textContent = user.role.toUpperCase();
+        document.getElementById('profileName').textContent = currentUser.name || currentUser.username;
+        document.getElementById('profileUsername').textContent = '@' + currentUser.username;
+        document.getElementById('profileAvatar').textContent = currentUser.username.charAt(0).toUpperCase();
+        document.getElementById('profileRole').textContent = currentUser.role.toUpperCase();
+        
+        // Fill Form Fields
+        document.getElementById('inputUsername').value = currentUser.username;
+        document.getElementById('inputName').value = currentUser.name || '';
+        document.getElementById('inputEmail').value = currentUser.email || '';
 
         // Doctor Logic
-        if(user.role === 'doctor') {
+        if(currentUser.role === 'doctor') {
             const navWorkouts = document.getElementById('navWorkouts');
             if(navWorkouts) navWorkouts.style.display = 'none';
             
@@ -210,11 +303,182 @@
             document.querySelector('.profile-role-badge').style.color = 'var(--blue-bright)';
             document.querySelector('.profile-role-badge').style.borderColor = 'rgba(41, 121, 255, 0.3)';
             document.querySelector('.profile-role-badge').style.background = 'rgba(41, 121, 255, 0.1)';
+            
+            // Update stat colors for doctor
+            document.querySelectorAll('.stat-value').forEach(el => {
+                el.style.color = 'var(--blue-bright)';
+            });
+            document.querySelectorAll('.stat-box').forEach(el => {
+                el.addEventListener('mouseenter', () => el.style.borderColor = 'var(--blue-border)');
+                el.addEventListener('mouseleave', () => el.style.borderColor = 'var(--border-dim)');
+            });
+        }
+        
+        // Load session history
+        loadSessionHistory(currentUser.id);
+    });
+    
+    // Load Session History with Statistics
+    async function loadSessionHistory(userId) {
+        const listEl = document.getElementById('sessionHistoryList');
+        if (!listEl) return;
+        
+        try {
+            const res = await fetch(`/session/history/${userId}`);
+            const data = await res.json();
+            const sessions = data.sessions || [];
+            
+            // Calculate statistics
+            const totalSessions = sessions.length;
+            document.getElementById('totalSessions').textContent = totalSessions;
+            
+            if (totalSessions > 0) {
+                // Calculate average accuracy
+                const accuracies = sessions
+                    .filter(s => s.keyMetrics?.accuracy_rate != null)
+                    .map(s => s.keyMetrics.accuracy_rate);
+                
+                if (accuracies.length > 0) {
+                    const avgAccuracy = Math.round(accuracies.reduce((a, b) => a + b, 0) / accuracies.length);
+                    document.getElementById('avgAccuracy').textContent = avgAccuracy + '%';
+                } else {
+                    document.getElementById('avgAccuracy').textContent = 'N/A';
+                }
+                
+                // Last session date
+                const lastSessionDate = sessions[0]?.startedAt;
+                if (lastSessionDate) {
+                    const date = new Date(lastSessionDate);
+                    const now = new Date();
+                    const diffTime = Math.abs(now - date);
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays === 0) {
+                        document.getElementById('lastSession').textContent = 'Today';
+                    } else if (diffDays === 1) {
+                        document.getElementById('lastSession').textContent = '1 day ago';
+                    } else if (diffDays < 7) {
+                        document.getElementById('lastSession').textContent = diffDays + ' days ago';
+                    } else {
+                        document.getElementById('lastSession').textContent = date.toLocaleDateString();
+                    }
+                }
+                
+                // Render session history timeline
+                listEl.innerHTML = sessions.map(s => {
+                    const date = s.startedAt ? new Date(s.startedAt).toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric' 
+                    }) : 'Unknown date';
+                    const time = s.startedAt ? new Date(s.startedAt).toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    }) : '';
+                    const status = s.keyMetrics?.goal_status || 'completed';
+                    const accuracy = s.keyMetrics?.accuracy_rate != null ? s.keyMetrics.accuracy_rate + '%' : null;
+                    const activation = s.keyMetrics?.activation_rate != null ? s.keyMetrics.activation_rate + '%' : null;
+                    
+                    return `<div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-date">${date} ${time ? '· ' + time : ''}</div>
+                            <div class="timeline-title">${s.notesSummary || 'Therapy Session'}</div>
+                            <div class="timeline-meta">
+                                ${accuracy ? `Accuracy: ${accuracy}` : ''}
+                                ${accuracy && activation ? ' · ' : ''}
+                                ${activation ? `Activation: ${activation}` : ''}
+                                ${(accuracy || activation) && status ? ' · ' : ''}
+                                ${status ? `<span style="color: ${status === 'achieved' ? 'var(--green-bright)' : 'var(--text-soft)'}">${status}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+            } else {
+                listEl.innerHTML = `<div class="no-history">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.3; margin-bottom: 1rem;">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <div>No sessions recorded yet.</div>
+                    <div style="font-size: 0.85rem; margin-top: 0.5rem;">Complete a session to see your history here.</div>
+                </div>`;
+                
+                document.getElementById('avgAccuracy').textContent = 'N/A';
+                document.getElementById('lastSession').textContent = 'Never';
+            }
+        } catch (err) {
+            console.error('Failed to load session history:', err);
+            listEl.innerHTML = `<div class="no-history">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.3; margin-bottom: 1rem;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+                <div>Could not load session history.</div>
+                <div style="font-size: 0.85rem; margin-top: 0.5rem;">Please try refreshing the page.</div>
+            </div>`;
+        }
+    }
+    
+    // Profile Form Submission
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const saveBtn = document.getElementById('saveBtn');
+        const saveSuccess = document.getElementById('saveSuccess');
+        const originalText = saveBtn.textContent;
+        
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+        saveSuccess.style.display = 'none';
+        
+        const updatedData = {
+            name: document.getElementById('inputName').value.trim(),
+            email: document.getElementById('inputEmail').value.trim()
+        };
+        
+        try {
+            // Call backend to update user profile
+            const response = await fetch(`/auth/profile/${currentUser.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedData)
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                // Update local storage
+                currentUser.name = updatedData.name;
+                currentUser.email = updatedData.email;
+                setCurrentUser(currentUser);
+                
+                // Update profile display
+                document.getElementById('profileName').textContent = updatedData.name || currentUser.username;
+                
+                // Show success message
+                saveSuccess.style.display = 'flex';
+                setTimeout(() => {
+                    saveSuccess.style.display = 'none';
+                }, 3000);
+            } else {
+                alert('Failed to save changes: ' + (result.message || 'Unknown error'));
+            }
+        } catch (err) {
+            console.error('Error saving profile:', err);
+            alert('Error saving changes. Please try again.');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = originalText;
         }
     });
 
     function logout() {
       localStorage.removeItem('fitmonCurrentUser');
+      localStorage.removeItem('fitmonSessionCode');
+      localStorage.removeItem('fitmonSessionId');
       window.location.href = '/login.html';
     }
   </script>

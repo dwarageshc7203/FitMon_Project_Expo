@@ -13,9 +13,33 @@ import SignupScreen from './src/screens/SignupScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import WorkoutsScreen from './src/screens/WorkoutsScreen';
+import WorkoutDetailScreen from './src/screens/WorkoutDetailScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
+
+// Workouts Stack Navigator
+function WorkoutsStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        cardStyle: { backgroundColor: '#030303' },
+      }}
+    >
+      <Stack.Screen name="WorkoutsList" component={WorkoutsScreen} />
+      <Stack.Screen 
+        name="WorkoutDetail" 
+        component={WorkoutDetailScreen}
+        options={{
+          presentation: 'modal',
+          gestureEnabled: true,
+          gestureDirection: 'vertical',
+        }}
+      />
+    </Stack.Navigator>
+  );
+}
 
 // Bottom Tab Navigator for authenticated users
 function MainTabs() {
@@ -64,7 +88,11 @@ function MainTabs() {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Workouts" component={WorkoutsScreen} />
+      <Tab.Screen 
+        name="Workouts" 
+        component={WorkoutsStack}
+        options={{ headerShown: false }}
+      />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

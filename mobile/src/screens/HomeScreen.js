@@ -62,6 +62,7 @@ export default function HomeScreen({ navigation }) {
   return (
     <ScrollView
       style={styles.container}
+      contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.green} />
@@ -176,6 +177,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bgBase,
+  },
+  scrollContent: {
+    paddingBottom: 100, // Extra space for bottom navbar
   },
   header: {
     paddingTop: 20,
